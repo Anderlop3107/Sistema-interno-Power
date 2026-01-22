@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Power Analytics | BI Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* VARIABLES DE TEMA */
+        :root {
+            --bg-main: #f0f2f5;
+            --sidebar: #ffffff;
+            --card: #ffffff;
+            --accent: #ff8c00;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #0f172a;
+            --sidebar: #1e293b;
+            --card: #1e293b;
+            --text-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100vh; 
+            background-color: var(--bg-main); 
+            font-family: 'Inter', system-ui, sans-serif; 
+            color: var(--text-dark); overflow: hidden;
+            transition: background 0.3s ease;
+        }
+
+        /* CAPA INICIAL */
+        #capa-inicial { 
+            position: fixed; inset: 0; background: var(--bg-main);
+            z-index: 100; display: flex; align-items: center; justify-content: center; 
+        }
+
+        .selector-box { 
+            background: var(--card); padding: 40px; border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        /* LAYOUT */
+        #dashboard-final { display: none; height: 100vh; grid-template-columns: 240px 1fr; }
+
+        aside { 
+            background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        main { padding: 30px; overflow-y: auto; }
+
+        /* NAVEGACIÓN */
+        .nav-btn {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            border-radius: 10px; border: none; background: transparent;
+            color: var(--text-muted); cursor: pointer; font-weight: 600; width: 100%;
+            transition: 0.2s;
+            text-align: left;
+        }
+
+        .nav-btn.active { background: rgba(255, 140, 0, 0.1); color: var(--accent); }
+        .nav-btn:hover:not(.active) { background: rgba(0,0,0,0.05); color: var(--text-dark); }
+
+        /* TARJETAS KPI */
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px; }
+        .kpi-card { 
+            background: var(--card); padding: 20px; border-radius: 15px;
+            border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .kpi-card span { color: var(--text-muted); font-size: 0.70rem; text-transform: uppercase; font-weight: bold; }
+        .kpi-card h2 { margin: 8px 0 0; font-size: 1.2rem; color: var(--text-dark); }
+
+        /* SECCIONES */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .card-pro { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.8rem; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-dark); }
+
+        .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
+
+        /* SWITCH MODO OSCURO */
+        .theme-switch {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px; background: var(--bg-main); border-radius: 12px; margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="capa-inicial">
+        <div class="selector-box">
+            <h1 style="color: var(--accent); margin:0;">POWER ANALYTICS</h1>
+            <p style="color: var(--text-muted); margin-bottom:20px;">Business Intelligence</p>
+            <input type="date" id="fechaInicio" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius:8px; border:1px solid var(--border); box-sizing:border-box;">
+            <input type="date" id="fechaFin" style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius:8px; border:1px solid var(--border); box-sizing:border-box;">
+            <button class="btn-primary" onclick="cargarDashboard()">GENERAR REPORTE</button>
+        </div>
+    </div>
+
+    <div id="dashboard-final">
+        <aside>
+            <div onclick="irAInicio()" style="font-weight: 800; font-size: 1.2rem; color: var(--accent); margin-bottom: 20px; cursor: pointer;">
+                POWER PANEL
+            </div>
+            
+            <div class="theme-switch">
+                <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted);">MODO OSCURO</span>
+                <input type="checkbox" id="toggleTheme" onclick="alternarTema()">
+            </div>
+
+            <nav style="display: flex; flex-direction: column; gap: 5px;">
+                <button class="nav-btn active" onclick="cambiarVista('resumen', this)"><i data-lucide="layout-dashboard"></i> Resumen</button>
+                <button class="nav-btn" onclick="cambiarVista('clientes', this)"><i data-lucide="users"></i> Clientes</button>
+                <button class="nav-btn" onclick="cambiarVista('productos', this)"><i data-lucide="package"></i> Productos</button>
+                <button class="nav-btn" onclick="cambiarVista('delivery', this)" style="color: #2563eb;"><i data-lucide="truck"></i> Deliverys</button>
+                <button class="nav-btn" onclick="cambiarVista('historial', this)"><i data-lucide="clipboard-list"></i> Historial</button>
+            </nav>
+            
+            <div style="margin-top: auto;">
+                <button class="nav-btn" onclick="location.reload()" style="color: #ef4444;"><i data-lucide="log-out"></i> Salir</button>
+            </div>
+        </aside>
+
+        <main>
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 id="tituloVista" style="margin:0;">Resumen Ejecutivo</h2>
+                <div id="rangoTexto" style="color: var(--text-muted); font-weight: 600;"></div>
+            </header>
+
+            <div class="stats-grid">
+                <div class="kpi-card"><span>Recaudación Total</span><h2 id="txtTotal">Gs. 0</h2></div>
+                <div class="kpi-card"><span>Total Pedidos</span><h2 id="txtCant">0</h2></div>
+                <div class="kpi-card"><span>Total Delivery</span><h2 id="txtDelivTotal" style="color: #2563eb;">Gs. 0</h2></div>
+                <div class="kpi-card"><span>Efectivo</span><h2 id="txtEfe" style="color: #16a34a;">Gs. 0</h2></div>
+                <div class="kpi-card"><span>Transferencia</span><h2 id="txtTra" style="color: #0284c7;">Gs. 0</h2></div>
+            </div>
+
+            <div id="view-resumen" class="view-section active">
+                <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px;">
+                    <div class="card-pro">
+                        <p style="font-weight: bold; margin-bottom: 20px;">TENDENCIA DE PRODUCTOS</p>
+                        <div style="height: 350px;"><canvas id="chartProductos"></canvas></div>
+                    </div>
+                    <div class="card-pro">
+                        <p style="font-weight: bold; margin-bottom: 20px;">DISTRIBUCIÓN DE PAGO</p>
+                        <div style="height: 350px;"><canvas id="chartFinanzas"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-clientes" class="view-section">
+                <div class="card-pro">
+                    <table id="tablaClientes">
+                        <thead><tr><th>POS.</th><th>CLIENTE</th><th>FRECUENCIA</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-productos" class="view-section">
+                <div class="card-pro">
+                    <table id="tablaProductos">
+                        <thead><tr><th>PRODUCTO</th><th>UNIDADES VENDIDAS</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-delivery" class="view-section">
+                <div class="card-pro">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <p style="font-weight: bold; margin:0;">HISTORIAL DE DELIVERY</p>
+                        <button onclick="enviarWhatsAppDelivery()" style="background: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">WhatsApp Reporte</button>
+                    </div>
+                    <table id="tablaDelivery">
+                        <thead><tr><th>FECHA</th><th>CLIENTE</th><th>MONTO ENVÍO</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-historial" class="view-section">
+                <div class="card-pro">
+                    <table id="tablaHistorial">
+                        <thead><tr><th>HORA</th><th>CLIENTE</th><th>TOTAL</th><th>ACCIÓN</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="Reportes.js"></script>
+    <script>
+        lucide.createIcons();
+
+        function alternarTema() {
+            const isDark = document.getElementById('toggleTheme').checked;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        }
+
+        // Nota: Las funciones cambiarVista, irAInicio y cargarDashboard 
+        // son manejadas por Reportes.js (vía window.xxx)
+    </script>
+</body>
+</html>

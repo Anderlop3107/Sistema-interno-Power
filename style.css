@@ -1,0 +1,197 @@
+/* 1. IMPORTACIÓN Y VARIABLES */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+
+:root {
+    --accent: #ff8c00;          /* Naranja principal */
+    --accent-light: #fffaf0;    /* Fondo crema suave */
+    --bg-body: #f0f2f5;         /* Gris claro fondo */
+    --card-bg: #ffffff;         /* Blanco puro */
+    --text-main: #333333;
+    --text-muted: #666666;
+    --danger: #ef4444;
+}
+
+/* 2. ESTILOS BASE */
+body {
+    background-color: var(--bg-body);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-main);
+    padding: 15px;
+}
+
+/* 3. ENCABEZADO */
+.header-container { text-align: center; margin-bottom: 20px; }
+.logo-top { width: 70px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+.titulo-principal { font-size: 20px; letter-spacing: 1px; color: #222; font-weight: 700; }
+
+/* 4. CONTENEDOR FORMULARIO */
+.formulario {
+    background-color: var(--card-bg);
+    width: 100%;
+    max-width: 380px;
+    padding: 30px;
+    border-radius: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* Manejo de pasos */
+.paso { display: none; opacity: 0; transform: translateX(20px); transition: 0.3s ease-out; }
+.paso.activo { display: block; opacity: 1; transform: translateX(0); }
+
+/* 5. INPUTS Y GRIDS */
+.grid-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+input[type="text"], 
+input[type="number"], 
+input[type="date"] {
+    width: 100%;
+    padding: 10px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    color: var(--text-main);
+    font-size: 15px;
+    margin-top: 5px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.opciones-entrega {
+    display: flex;
+    justify-content: space-around;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px 0;
+    border: 1px solid #eee;
+}
+
+/* 6. PANTALLA DE TOTAL */
+#total_pantalla {
+    background: var(--accent-light);
+    border: 2px dashed var(--accent);
+    padding: 15px;
+    text-align: center;
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 26px;
+    margin: 20px 0;
+    border-radius: 15px;
+}
+
+/* 7. BOTONES */
+button {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #ff9d2f 0%, #ff6b00 100%);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 107, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+button:active { transform: scale(0.98); }
+
+.btn-atras { background: #999 !important; box-shadow: none; }
+.fila-botones { display: flex; gap: 10px; margin-top: 10px; }
+
+/* 8. TABLAS E HISTORIAL */
+.tabla-historial { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+.tabla-historial th { text-align: left; padding: 8px; border-bottom: 2px solid var(--accent); color: var(--accent); }
+.tabla-historial td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+
+.btn-detalle { 
+    background: var(--accent); 
+    color: white; 
+    border: none; 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 0.75rem;
+    width: auto;
+}
+
+.badge-fiel { 
+    background: rgba(255, 140, 0, 0.1); 
+    padding: 4px 10px; 
+    border-radius: 20px; 
+    color: var(--accent); 
+    font-size: 0.85rem; 
+    font-weight: bold; 
+}
+
+/* 9. MODALES (REVISIÓN DE PEDIDO / COCINA) */
+.modal-overlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.5); /* Sombra oscura para enfocar el modal */
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 2000; 
+    padding: 20px; 
+}
+
+.modal-content { 
+    background: var(--card-bg); 
+    padding: 25px; 
+    border-radius: 20px; 
+    width: 100%; 
+    max-width: 350px; 
+    color: var(--text-main); 
+    border: 2px solid var(--accent);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.ticket-header {
+    text-align: center;
+    border-bottom: 2px dashed #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.detalle-item, .ticket-item { 
+    display: flex; 
+    justify-content: space-between; 
+    padding: 8px 0; 
+    border-bottom: 1px dashed #eee; 
+}
+
+.detalle-item b, .ticket-item b { color: var(--accent); }
+
+.btn-cerrar { 
+    width: 100%; 
+    margin-top: 15px; 
+    padding: 12px; 
+    background: #333333; 
+    color: white; 
+    border: none; 
+    border-radius: 10px; 
+    font-weight: bold; 
+    cursor: pointer; 
+}
+
+/* 10. ELEMENTOS DE SEPARACIÓN */
+hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+p b { color: #444; font-size: 14px; }
