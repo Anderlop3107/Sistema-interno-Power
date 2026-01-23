@@ -35,35 +35,46 @@ const precios = {
     qty_salsa: 1000
 };
 
-// 4. FUNCIONES DE NOTIFICACIÓN (Sonido + Vibración + Visual)
 function mostrarNotificacion(nombreCliente) {
-    // A. Efecto Visual
+    // A. Efecto Visual (Más pequeño y rectangular)
     const aviso = document.createElement('div');
     aviso.style = `
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background-color: #ff8c00; color: white; padding: 20px 40px;
-        border-radius: 15px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        z-index: 10000; font-family: sans-serif; font-size: 1.5em; text-align: center;
-        border: 3px solid white; animation: slideDown 0.5s ease-out;
+        position: fixed; 
+        top: 20px; 
+        left: 50%; 
+        transform: translateX(-50%);
+        background-color: #ff8c00; 
+        color: white; 
+        padding: 12px 25px;
+        border-radius: 8px; 
+        font-weight: bold; 
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        z-index: 10000; 
+        font-family: sans-serif; 
+        font-size: 1rem; 
+        text-align: center;
+        border: 2px solid white; 
+        animation: slideDown 0.5s ease-out;
+        min-width: 280px;
     `;
-    aviso.innerHTML = `🔔 ¡PEDIDO LISTO!<br><small>${nombreCliente}</small>`;
+    // Texto solicitado
+    aviso.innerHTML = `🔔 El pedido de <b>${nombreCliente}</b> está listo`;
     document.body.appendChild(aviso);
 
     // B. Ejecutar Sonido
-    sonidoNotificacion.play().catch(e => console.log("El navegador bloqueó el audio. Toca la pantalla una vez."));
+    sonidoNotificacion.play().catch(e => console.log("Permiso de audio requerido"));
 
-    // C. Ejecutar Vibración (Solo Android)
+    // C. Ejecutar Vibración
     if (navigator.vibrate) {
-        navigator.vibrate([300, 100, 300, 100, 300]); // Patrón de 3 vibraciones
+        navigator.vibrate([200, 100, 200]); 
     }
 
     // D. Auto-eliminar aviso
     setTimeout(() => {
         aviso.style.animation = "slideUp 0.5s ease-in";
         setTimeout(() => aviso.remove(), 500);
-    }, 7000);
+    }, 5000); // Se queda 5 segundos en pantalla
 }
-
 // Estilos para las animaciones de la notificación
 const styleAnim = document.createElement('style');
 styleAnim.innerHTML = `
