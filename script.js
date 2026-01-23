@@ -43,7 +43,7 @@ function mostrarNotificacion(nombreCliente) {
         top: 20px; 
         left: 50%; 
         transform: translateX(-50%);
-        background-color: #ff8c00; 
+        background-color: #4CAF50; 
         color: white; 
         padding: 12px 25px;
         border-radius: 8px; 
@@ -174,3 +174,4 @@ window.enviarAlCocinero = () => {
         })
         .catch(err => alert("Error: " + err));
 };
+
