@@ -1,6 +1,7 @@
-// 1. IMPORTACIONES (Siempre al principio)
+// 1. IMPORTACIONES
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue, limitToLast, query, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 // 2. CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -15,9 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// 3. VARIABLES DE CONTROL Y DATOS
-const sonidoListo = document.getElementById('sonidoListo');
+// 3. VARIABLES DE CONTROL Y SONIDO
 let historialCargado = false;
+// Sonido de notificación externo (Mixkit)
+const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 const precios = {
     qty_power: 12000,
@@ -33,42 +35,49 @@ const precios = {
     qty_salsa: 1000
 };
 
-// 4. FUNCIONES INTERNAS (Notificaciones y Estilos)
+// 4. FUNCIONES DE NOTIFICACIÓN (Sonido + Vibración + Visual)
 function mostrarNotificacion(nombreCliente) {
+    // A. Efecto Visual
     const aviso = document.createElement('div');
     aviso.style = `
         position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background-color: #4CAF50; color: white; padding: 15px 30px;
-        border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        z-index: 10000; font-family: sans-serif; font-size: 1.2em;
-        animation: slideDown 0.5s ease-out;
+        background-color: #ff8c00; color: white; padding: 20px 40px;
+        border-radius: 15px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        z-index: 10000; font-family: sans-serif; font-size: 1.5em; text-align: center;
+        border: 3px solid white; animation: slideDown 0.5s ease-out;
     `;
-    aviso.innerHTML = `✅ ¡Pedido de <b>${nombreCliente}</b> listo!`;
+    aviso.innerHTML = `🔔 ¡PEDIDO LISTO!<br><small>${nombreCliente}</small>`;
     document.body.appendChild(aviso);
 
-    if (sonidoListo) {
-        sonidoListo.currentTime = 0;
-        sonidoListo.play().catch(e => console.log("Audio bloqueado, haz clic en la pantalla."));
+    // B. Ejecutar Sonido
+    sonidoNotificacion.play().catch(e => console.log("El navegador bloqueó el audio. Toca la pantalla una vez."));
+
+    // C. Ejecutar Vibración (Solo Android)
+    if (navigator.vibrate) {
+        navigator.vibrate([300, 100, 300, 100, 300]); // Patrón de 3 vibraciones
     }
 
+    // D. Auto-eliminar aviso
     setTimeout(() => {
         aviso.style.animation = "slideUp 0.5s ease-in";
         setTimeout(() => aviso.remove(), 500);
-    }, 6000);
+    }, 7000);
 }
 
+// Estilos para las animaciones de la notificación
 const styleAnim = document.createElement('style');
 styleAnim.innerHTML = `
-    @keyframes slideDown { from { top: -100px; } to { top: 20px; } }
-    @keyframes slideUp { from { top: 20px; } to { top: -100px; } }
+    @keyframes slideDown { from { top: -150px; opacity: 0; } to { top: 20px; opacity: 1; } }
+    @keyframes slideUp { from { top: 20px; opacity: 1; } to { top: -150px; opacity: 0; } }
 `;
 document.head.appendChild(styleAnim);
 
-// 5. ESCUCHAS EN TIEMPO REAL (Firebase Listeners)
+// 5. ESCUCHA DE PEDIDOS LISTOS (Firebase)
+// Escuchamos la rama 'historial' que es donde la cocina envía el pedido al terminar
 const historialRef = query(ref(database, 'historial'), limitToLast(1));
 onValue(historialRef, (snapshot) => {
     if (!historialCargado) {
-        historialCargado = true;
+        historialCargado = true; // Evita que suene todo lo viejo al abrir la app
         return;
     }
     if (snapshot.exists()) {
@@ -79,7 +88,7 @@ onValue(historialRef, (snapshot) => {
     }
 });
 
-// 6. FUNCIONES GLOBALES (Conectadas al HTML vía onclick/oninput)
+// 6. FUNCIONES GLOBALES
 window.cambiarPaso = (paso) => {
     document.querySelectorAll('.paso').forEach(p => p.classList.remove('activo'));
     document.getElementById(`paso${paso}`).classList.add('activo');
@@ -118,17 +127,16 @@ window.enviarAlCocinero = () => {
     const nombre = document.getElementById('nombre_cliente').value.trim();
     if (!nombre) { alert("Escriba el nombre del cliente"); return; }
 
-    // Capturar la observación
     const obs = document.getElementById('observaciones').value.trim();
 
     const pedido = {
         cliente: nombre,
         productos: {},
-        observaciones: obs, // <--- Nueva línea
+        observaciones: obs,
         entrega: document.querySelector('input[name="entrega"]:checked').value,
         monto_delivery: parseInt(document.getElementById('monto_delivery').value) || 0,
         metodoPago: document.querySelector('input[name="pago"]:checked').value,
-        totalNum: calcular(), // Usamos totalNum para que sea número
+        totalNum: calcular(),
         totalStr: document.getElementById('total_pantalla').innerText,
         hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         fecha_final: new Date().toLocaleDateString('es-PY').replace(/\//g, '-')
@@ -147,7 +155,6 @@ window.enviarAlCocinero = () => {
         return;
     }
 
-    // Usamos 'set' con 'push' para evitar el error de la imagen
     const nuevoPedidoRef = push(ref(database, 'pedidos'));
     set(nuevoPedidoRef, pedido)
         .then(() => {
