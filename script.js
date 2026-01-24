@@ -18,8 +18,9 @@ const database = getDatabase(app);
 
 // 3. VARIABLES DE CONTROL Y SONIDO
 let historialCargado = false;
-// Sonido de notificación externo (Mixkit)
+// Sonido de notificación con volumen al máximo
 const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+sonidoNotificacion.volume = 1.0;
 
 const precios = {
     qty_power: 12000,
@@ -36,7 +37,20 @@ const precios = {
 };
 
 function mostrarNotificacion(nombreCliente) {
-    // A. Efecto Visual (Más pequeño y rectangular)
+    // 1. CONFIGURACIÓN DEL SONIDO (Doble toque y Volumen)
+    sonidoNotificacion.volume = 1.0; // Asegurar volumen máximo
+    sonidoNotificacion.currentTime = 0; // Reiniciar sonido
+    sonidoNotificacion.play().catch(e => console.log("Permiso de audio requerido"));
+
+    // Hacer que suene una segunda vez al terminar la primera
+    sonidoNotificacion.onended = function() {
+        setTimeout(() => {
+            sonidoNotificacion.play();
+        }, 500); // Medio segundo de pausa entre sonidos
+        sonidoNotificacion.onended = null; // Limpiar para que no sea infinito
+    };
+
+    // 2. EFECTO VISUAL (El cuadro verde arriba)
     const aviso = document.createElement('div');
     aviso.style = `
         position: fixed; 
@@ -57,17 +71,19 @@ function mostrarNotificacion(nombreCliente) {
         animation: slideDown 0.5s ease-out;
         min-width: 280px;
     `;
-    // Texto solicitado
     aviso.innerHTML = `🔔 El pedido de <b>${nombreCliente}</b> está listo`;
     document.body.appendChild(aviso);
 
-    // B. Ejecutar Sonido
-    sonidoNotificacion.play().catch(e => console.log("Permiso de audio requerido"));
-
-    // C. Ejecutar Vibración
+    // 3. VIBRACIÓN
     if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]); 
+        navigator.vibrate([300, 100, 300, 100, 300]); // Vibración más larga y notable
     }
+
+    // 4. QUITAR EL AVISO VISUAL (Después de 6 segundos)
+    setTimeout(() => {
+        aviso.style.animation = "slideUp 0.5s ease-in";
+        setTimeout(() => aviso.remove(), 500);
+    }, 6000);
 
     // D. Auto-eliminar aviso
     setTimeout(() => {
@@ -174,4 +190,3 @@ window.enviarAlCocinero = () => {
         })
         .catch(err => alert("Error: " + err));
 };
-
