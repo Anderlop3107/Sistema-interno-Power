@@ -1,0 +1,20 @@
+{
+  "short_name": "Power Cocina",
+  "name": "Power - Area de Cocina",
+  "icons": [
+    {
+      "src": "LogoPow.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "LogoPow.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "./cocina.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff8c00"
+}
