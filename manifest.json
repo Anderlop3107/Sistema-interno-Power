@@ -1,0 +1,21 @@
+{
+  "short_name": "Power",
+  "name": "Pedidos Power",
+  "icons": [
+    {
+      "src": "LogoPow.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "LogoPow.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#ff8c00"
+}
