@@ -1,17 +1,20 @@
-self.addEventListener('push', function(event) {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || "¡NUEVO PEDIDO! 🍔";
-    const options = {
-        body: data.body || "Revisa la lista de pedidos.",
-        icon: "LogoBow.png",
-        badge: "LogoBow.png",
-        vibrate: [300, 100, 300]
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-});
+// sw.js
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', () => clients.claim());
 
-// Al hacer clic en la notificación, abre la app
+// Controla qué pasa cuando tocas la barrita de notificación
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
-    event.waitUntil(clients.openWindow('/'));
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+            // Si la app ya está abierta, ponle el foco
+            for (let client of clientList) {
+                if (client.url.includes('cocina.html') && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Si está cerrada, ábrela
+            if (clients.openWindow) return clients.openWindow('./cocina.html');
+        })
+    );
 });
