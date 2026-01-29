@@ -9,8 +9,8 @@ self.addEventListener('push', function(event) {
     const title = "🔥 ¡NUEVO PEDIDO!";
     const options = {
         body: "Tienes un pedido pendiente de revisión.",
-        icon: "LogoBow.png",
-        badge: "LogoBow.png",
+        icon: "LogoPow.png",
+        badge: "LogoPow.png",
         vibrate: [300, 100, 300],
         tag: 'pedido-nuevo-' + Date.now(), // Tag único para que "baje" siempre
         renotify: true,
@@ -38,4 +38,5 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
 
