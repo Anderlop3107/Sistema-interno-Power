@@ -1,38 +1,29 @@
-// 1. INSTALACIÓN Y ACTIVACIÓN RÁPIDA
+// 1. INSTALACIÓN Y ACTIVACIÓN
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', () => self.clients.claim());
 
-// 2. ESCUCHAR EL EVENTO PUSH (Lo que hace que el banner baje con tu LOGO)
+// 2. EVENTO PUSH CORREGIDO
 self.addEventListener('push', function(event) {
-    // Intentamos sacar el nombre del cliente si viene en el evento, 
-    // si no, ponemos un texto general.
-    let nombreCliente = "Nuevo Pedido";
-    try {
-        const data = event.data.json();
-        nombreCliente = data.cliente || "Nuevo Pedido";
-    } catch (e) {
-        console.log("Push sin JSON, usando texto por defecto");
-    }
-
     const title = "🔥 ¡NUEVO PEDIDO!";
+    
+    // Configuración robusta
     const options = {
-        body: `Cliente: ${nombreCliente}`,
-        icon: "LogoPow.png",  // <--- VERIFICA QUE ESTE NOMBRE SEA EXACTO
-        badge: "LogoPow.png", // <--- ICONO PEQUEÑO PARA LA BARRA SUPERIOR
-        vibrate: [300, 100, 300],
-        tag: 'pedido-nuevo-' + Date.now(),
+        body: "Toca para ver los detalles del pedido",
+        icon: "LogoPow.png",  
+        badge: "LogoPow.png", 
+        vibrate: [300, 100, 300, 100, 300],
+        tag: 'pedido-' + Date.now(), // Esto obliga al celular a que el banner "BAJE"
         renotify: true,
-        requireInteraction: true, // El banner se queda hasta que lo toquen o deslicen
+        requireInteraction: true, 
         data: { url: './cocina.html' }
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// 3. CONTROLAR EL CLIC (Llevar al cocinero a la app)
+// 3. CONTROLAR EL CLIC
 self.addEventListener('notificationclick', function(event) {
-    event.notification.close(); 
-    
+    event.notification.close();
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
             for (let client of clientList) {
@@ -40,9 +31,7 @@ self.addEventListener('notificationclick', function(event) {
                     return client.focus();
                 }
             }
-            if (clients.openWindow) {
-                return clients.openWindow('./cocina.html');
-            }
+            if (clients.openWindow) return clients.openWindow('./cocina.html');
         })
     );
 });
