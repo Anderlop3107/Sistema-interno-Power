@@ -23,14 +23,31 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// MEJORA A: ACTIVACIÓN SILENCIOSA (Sin máscara blanca)
-document.addEventListener('click', () => {
-    [sonidoNuevo, sonidoListo].forEach(s => {
-        if(s) { s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{}); }
-    });
-}, { once: true });
+// 4. CAPA DE ACTIVACIÓN (La que pediste volver a agregar)
+const capa = document.createElement('div');
+capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
+capa.innerHTML = `
+    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
+        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
+        <span style="font-size: 3em;">🔔</span>
+    </div>`;
+document.body.appendChild(capa);
 
-// MEJORA B: FUNCIÓN PARA LA BARRITA VISUAL
+capa.onclick = () => {
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }).catch(()=>{}); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }).catch(()=>{}); }
+    
+    // Pedir permiso para las notificaciones (banner de barrita)
+    if ("Notification" in window) {
+        Notification.requestPermission();
+    }
+    
+    capa.remove();
+};
+
+// Función para lanzar la "barrita" (Push Notification)
 function lanzarNotificacionVisual(nombreCliente) {
     if (Notification.permission === "granted") {
         navigator.serviceWorker.ready.then(registration => {
@@ -62,31 +79,25 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // MEJORA C: ALERTA SONORA Y VISUAL INTEGRADA
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
                 sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
             }
-            
-            // Lanza la barrita visual con el nombre del cliente
             const ultimoId = ids[ids.length - 1];
             const nombre = pedidos[ultimoId].cliente || "Nuevo";
             lanzarNotificacionVisual(nombre);
         }
         conteoAnterior = ids.length;
 
-        // Detectar productos repetidos para resaltar
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
         ids.forEach((id, index) => {
             if (index > 1) return; 
-
             const p = pedidos[id];
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
-            
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
@@ -109,9 +120,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-                
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
-                
+                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 <hr>
                 <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
@@ -137,9 +146,7 @@ window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
         for (let prod in p.productos) {
@@ -148,7 +155,6 @@ window.terminarPedido = (id) => {
                 runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
             }
         }
-
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -156,23 +162,13 @@ window.terminarPedido = (id) => {
                 runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
             }
         }
-        
         remove(ref(database, 'pedidos/' + id));
-    })
-    .catch(err => console.error("Error al finalizar:", err));
+    });
 };
 
-// REGISTRO DEL SERVICE WORKER
+// 7. SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => {
-                console.log('Service Worker de Cocina listo');
-                // Pedimos permiso de notificación apenas cargue la app
-                if (Notification.permission !== "granted") {
-                    Notification.requestPermission();
-                }
-            })
-            .catch(err => console.log('Error al contratar SW', err));
+        navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Cocina OK'));
     });
 }
