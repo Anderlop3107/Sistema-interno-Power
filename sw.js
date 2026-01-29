@@ -5,12 +5,11 @@ self.addEventListener('activate', () => self.clients.claim());
 // 2. EVENTO PUSH (Recibir notificación)
 self.addEventListener('push', function(event) {
     const title = "🔥 ¡NUEVO PEDIDO!";
-  const options = {
+    const options = {
         body: "Toca para abrir la cocina",
-        // Quitamos el location.origin y dejamos la ruta directa
-        icon: "LogoPow.png", 
-        badge: "LogoPow.png",
-        image: "LogoPow.png", 
+        icon: "LogoPow.png",       // Ruta relativa (busca en la misma carpeta)
+        badge: "LogoPow.png",      // Ruta relativa
+        image: "LogoPow.png",      // Para que se vea la imagen grande
         vibrate: [500, 110, 500],
         tag: 'pedido-' + Date.now(),
         renotify: true,
@@ -35,4 +34,5 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
 
