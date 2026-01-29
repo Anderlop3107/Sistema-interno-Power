@@ -51,7 +51,7 @@ capa.onclick = () => {
 function lanzarNotificacionVisual(nombreCliente) {
     if (Notification.permission === "granted") {
         navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification("🍔 ¡NUEVO PEDIDO!", {
+            registration.showNotification("🔥 ¡NUEVO PEDIDO!", {
                 body: `Cliente: ${nombreCliente}`,
                 icon: "LogoBow.png",
                 badge: "LogoBow.png",
@@ -172,3 +172,4 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Cocina OK'));
     });
 }
+
