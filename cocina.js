@@ -23,24 +23,27 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// Se ejecuta una sola vez al primer toque para habilitar audios
+// MEJORA A: ACTIVACIÓN SILENCIOSA (Sin máscara blanca)
 document.addEventListener('click', () => {
     [sonidoNuevo, sonidoListo].forEach(s => {
         if(s) { s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(()=>{}); }
     });
 }, { once: true });
 
-// Función para lanzar la alerta al celular
-function lanzarNotificacionExterna(nombre) {
+// MEJORA B: FUNCIÓN PARA LA BARRITA VISUAL
+function lanzarNotificacionVisual(nombreCliente) {
     if (Notification.permission === "granted") {
-        new Notification("🍔 ¡NUEVO PEDIDO!", {
-            body: `Preparar pedido de: ${nombre}`,
-            icon: "LogoPow.png",
-            vibrate: [300, 100, 300]
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification("🍔 ¡NUEVO PEDIDO!", {
+                body: `Cliente: ${nombreCliente}`,
+                icon: "LogoBow.png",
+                badge: "LogoBow.png",
+                vibrate: [300, 100, 300],
+                tag: 'pedido-nuevo',
+                renotify: true,
+                requireInteraction: true 
+            });
         });
-    } else {
-        // Si no tenemos permiso todavía, lo pedimos
-        Notification.requestPermission();
     }
 }
 
@@ -50,27 +53,27 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
     
-    contenedor.innerHTML = ""; // Limpiar pantalla
+    contenedor.innerHTML = ""; 
     contenedor.style.display = "grid";
     contenedor.style.gridTemplateColumns = "1fr 1fr";
     contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; // Pedido nuevo a la derecha
+    contenedor.style.direction = "rtl"; 
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Alerta sonora si hay un pedido nuevo
+        // MEJORA C: ALERTA SONORA Y VISUAL INTEGRADA
         if (!primeraCarga && ids.length > conteoAnterior) { 
-    if(sonidoNuevo) {
-        sonidoNuevo.currentTime = 0;
-        sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
-    }
-    
-    // Sacamos el nombre del último pedido para la notificación
-    const ultimoId = ids[ids.length - 1];
-    const nombreCliente = pedidos[ultimoId].cliente;
-    lanzarNotificacionExterna(nombreCliente);
-}
+            if(sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
+            }
+            
+            // Lanza la barrita visual con el nombre del cliente
+            const ultimoId = ids[ids.length - 1];
+            const nombre = pedidos[ultimoId].cliente || "Nuevo";
+            lanzarNotificacionVisual(nombre);
+        }
         conteoAnterior = ids.length;
 
         // Detectar productos repetidos para resaltar
@@ -79,7 +82,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo mostrar los 2 primeros
+            if (index > 1) return; 
 
             const p = pedidos[id];
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
@@ -137,10 +140,8 @@ window.terminarPedido = (id) => {
 
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
     
-    // 1. Mover al historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // 2. Actualizar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
@@ -148,7 +149,6 @@ window.terminarPedido = (id) => {
             }
         }
 
-        // 3. Monto de Delivery si corresponde
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -157,18 +157,22 @@ window.terminarPedido = (id) => {
             }
         }
         
-        // 4. Quitar de activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-// CONTRATAR AL EMPLEADO (Service Worker)
+// REGISTRO DEL SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker del Vendedor listo', reg))
+            .then(reg => {
+                console.log('Service Worker de Cocina listo');
+                // Pedimos permiso de notificación apenas cargue la app
+                if (Notification.permission !== "granted") {
+                    Notification.requestPermission();
+                }
+            })
             .catch(err => console.log('Error al contratar SW', err));
     });
 }
-
