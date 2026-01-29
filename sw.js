@@ -6,7 +6,7 @@ self.addEventListener('activate', () => self.clients.claim());
 // Nota: showNotification se llama aquí o desde el JS principal. 
 // Para asegurar que sea "Heads-up" (que baje), usamos tag único y renotify.
 self.addEventListener('push', function(event) {
-    const title = "🍔 ¡NUEVO PEDIDO!";
+    const title = "🔥 ¡NUEVO PEDIDO!";
     const options = {
         body: "Tienes un pedido pendiente de revisión.",
         icon: "LogoBow.png",
@@ -38,3 +38,4 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
