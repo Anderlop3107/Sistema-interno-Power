@@ -18,7 +18,6 @@ const database = getDatabase(app);
 
 // 3. VARIABLES DE CONTROL Y SONIDO
 let historialCargado = false;
-// Sonido de notificación con volumen al máximo
 const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 sonidoNotificacion.volume = 1.0;
 
@@ -36,62 +35,50 @@ const precios = {
     qty_salsa: 1000
 };
 
-function mostrarNotificacion(nombreCliente) {
-    // 1. CONFIGURACIÓN DEL SONIDO (Doble toque y Volumen)
-    sonidoNotificacion.volume = 1.0; // Asegurar volumen máximo
-    sonidoNotificacion.currentTime = 0; // Reiniciar sonido
+// 4. MEJORA: NOTIFICACIÓN UNIFICADA (BARRITA + CUADRO VERDE)
+function mostrarNotificacionCompleta(nombreCliente) {
+    // 1. SONIDO
+    sonidoNotificacion.currentTime = 0;
     sonidoNotificacion.play().catch(e => console.log("Permiso de audio requerido"));
 
-    // Hacer que suene una segunda vez al terminar la primera
-    sonidoNotificacion.onended = function() {
-        setTimeout(() => {
-            sonidoNotificacion.play();
-        }, 500); // Medio segundo de pausa entre sonidos
-        sonidoNotificacion.onended = null; // Limpiar para que no sea infinito
-    };
-
-    // 2. EFECTO VISUAL (El cuadro verde arriba)
+    // 2. CUADRO VERDE INTERNO (App abierta)
     const aviso = document.createElement('div');
     aviso.style = `
-        position: fixed; 
-        top: 20px; 
-        left: 50%; 
-        transform: translateX(-50%);
-        background-color: #4CAF50; 
-        color: white; 
-        padding: 12px 25px;
-        border-radius: 8px; 
-        font-weight: bold; 
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        z-index: 10000; 
-        font-family: sans-serif; 
-        font-size: 1rem; 
-        text-align: center;
-        border: 2px solid white; 
-        animation: slideDown 0.5s ease-out;
-        min-width: 280px;
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background-color: #4CAF50; color: white; padding: 12px 25px;
+        border-radius: 8px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        z-index: 10000; font-family: sans-serif; text-align: center;
+        border: 2px solid white; animation: slideDown 0.5s ease-out; min-width: 280px;
     `;
     aviso.innerHTML = `🔔 El pedido de <b>${nombreCliente}</b> está listo`;
     document.body.appendChild(aviso);
 
-    // 3. VIBRACIÓN
-    if (navigator.vibrate) {
-        navigator.vibrate([300, 100, 300, 100, 300]); // Vibración más larga y notable
+    setTimeout(() => {
+        aviso.style.animation = "slideUp 0.5s ease-in";
+        setTimeout(() => aviso.remove(), 500);
+    }, 5000);
+
+    // 3. BARRITA DE SISTEMA (App en segundo plano / otra app)
+    if (Notification.permission === "granted") {
+        navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification("✅ ¡PEDIDO LISTO!", {
+                body: `El pedido de ${nombreCliente} ya está terminado.`,
+                icon: "LogoBow.png",
+                badge: "LogoBow.png",
+                vibrate: [200, 100, 200],
+                tag: 'pedido-listo',
+                renotify: true
+            });
+        });
     }
 
-    // 4. QUITAR EL AVISO VISUAL (Después de 6 segundos)
-    setTimeout(() => {
-        aviso.style.animation = "slideUp 0.5s ease-in";
-        setTimeout(() => aviso.remove(), 500);
-    }, 6000);
-
-    // D. Auto-eliminar aviso
-    setTimeout(() => {
-        aviso.style.animation = "slideUp 0.5s ease-in";
-        setTimeout(() => aviso.remove(), 500);
-    }, 5000); // Se queda 5 segundos en pantalla
+    // 4. VIBRACIÓN
+    if (navigator.vibrate) {
+        navigator.vibrate([300, 100, 300]);
+    }
 }
-// Estilos para las animaciones de la notificación
+
+// Estilos para las animaciones del cuadro verde
 const styleAnim = document.createElement('style');
 styleAnim.innerHTML = `
     @keyframes slideDown { from { top: -150px; opacity: 0; } to { top: 20px; opacity: 1; } }
@@ -100,22 +87,21 @@ styleAnim.innerHTML = `
 document.head.appendChild(styleAnim);
 
 // 5. ESCUCHA DE PEDIDOS LISTOS (Firebase)
-// Escuchamos la rama 'historial' que es donde la cocina envía el pedido al terminar
 const historialRef = query(ref(database, 'historial'), limitToLast(1));
 onValue(historialRef, (snapshot) => {
     if (!historialCargado) {
-        historialCargado = true; // Evita que suene todo lo viejo al abrir la app
+        historialCargado = true; 
         return;
     }
     if (snapshot.exists()) {
         const datos = snapshot.val();
         const id = Object.keys(datos)[0];
         const nombreCliente = datos[id].cliente;
-        mostrarNotificacion(nombreCliente);
+        mostrarNotificacionCompleta(nombreCliente);
     }
 });
 
-// 6. FUNCIONES GLOBALES
+// 6. FUNCIONES GLOBALES DEL VENDEDOR
 window.cambiarPaso = (paso) => {
     document.querySelectorAll('.paso').forEach(p => p.classList.remove('activo'));
     document.getElementById(`paso${paso}`).classList.add('activo');
@@ -191,11 +177,15 @@ window.enviarAlCocinero = () => {
         .catch(err => alert("Error: " + err));
 };
 
-// CONTRATAR AL EMPLEADO (Service Worker)
+// 7. REGISTRO DE SERVICE WORKER Y PERMISOS
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker del Vendedor listo', reg))
-            .catch(err => console.log('Error al contratar SW', err));
+            .then(reg => console.log('Service Worker del Vendedor listo'))
+            .catch(err => console.log('Error al registrar SW', err));
     });
+}
+
+if ('Notification' in window) {
+    Notification.requestPermission();
 }
