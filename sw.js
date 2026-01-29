@@ -6,15 +6,16 @@ self.addEventListener('activate', () => self.clients.claim());
 self.addEventListener('push', function(event) {
     const title = "🔥 ¡NUEVO PEDIDO!";
     
-    // Configuración robusta
+   // ... dentro de las opciones de notificación
     const options = {
-        body: "Toca para ver los detalles del pedido",
-        icon: "LogoPow.png",  
-        badge: "LogoPow.png", 
-        vibrate: [300, 100, 300, 100, 300],
-        tag: 'pedido-' + Date.now(), // Esto obliga al celular a que el banner "BAJE"
+        body: "Toca para abrir la cocina",
+        // Usamos location.origin para que la ruta sea completa (ej: https://tusitio.com/LogoPow.png)
+        icon: self.location.origin + "/LogoPow.png", 
+        badge: self.location.origin + "/LogoPow.png",
+        vibrate: [500, 110, 500],
+        tag: 'pedido-' + Date.now(),
         renotify: true,
-        requireInteraction: true, 
+        requireInteraction: true,
         data: { url: './cocina.html' }
     };
 
@@ -35,3 +36,4 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
