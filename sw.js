@@ -2,14 +2,11 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', () => self.clients.claim());
 
-// 2. EVENTO PUSH CORREGIDO
+// 2. EVENTO PUSH (Recibir notificación)
 self.addEventListener('push', function(event) {
     const title = "🔥 ¡NUEVO PEDIDO!";
-    
-   // ... dentro de las opciones de notificación
     const options = {
         body: "Toca para abrir la cocina",
-        // Usamos location.origin para que la ruta sea completa (ej: https://tusitio.com/LogoPow.png)
         icon: self.location.origin + "/LogoPow.png", 
         badge: self.location.origin + "/LogoPow.png",
         vibrate: [500, 110, 500],
@@ -22,7 +19,7 @@ self.addEventListener('push', function(event) {
     event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// 3. CONTROLAR EL CLIC
+// 3. CONTROLAR EL CLIC (Abrir la app)
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
@@ -36,4 +33,3 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
-
