@@ -20,12 +20,8 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// Detener alarma al interactuar
 document.addEventListener("click", () => {
-    if (sonidoNuevo) {
-        sonidoNuevo.pause();
-        sonidoNuevo.currentTime = 0;
-    }
+    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
 });
 
 onValue(ref(database, 'pedidos'), (snapshot) => {
@@ -36,12 +32,9 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
-        
         if (!primeraCarga && ids.length > conteoAnterior) { 
-            if(sonidoNuevo) {
-                sonidoNuevo.currentTime = 0;
-                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
-            }
+            sonidoNuevo.currentTime = 0;
+            sonidoNuevo.play().catch(()=>{}); 
         }
         conteoAnterior = ids.length;
 
@@ -54,7 +47,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
-                    productosHTML += `<div class="producto-item"><span>${cant} x</span> ${nombre}</div>`;
+                    productosHTML += `<div class="producto-item">${cant} x ${nombre}</div>`;
                 }
             }
 
@@ -62,21 +55,29 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div class="header-pedido">
-                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}</span>
-                    <span>🕒 ${p.hora || ''}</span>
+                    <div class="tag-estado">
+                        ${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}
+                    </div>
+                    <div class="hora-pedido">
+                        🕒 ${p.hora || ''}
+                    </div>
                 </div>
+                
                 <div class="info-cliente">
-                    <div>👤 <b>${p.cliente}</b></div>
-                    <div>📍 <b>${p.entrega || 'Local'}</b></div>
+                    <div class="dato-linea">👤 ${p.cliente}</div>
+                    <div class="dato-linea">📍 ${p.entrega || 'Local'}</div>
                 </div>
+
                 <div class="contenedor-items">
                     ${productosHTML}
-                    ${p.observaciones ? `<div class="observacion-box">⚠️ ${p.observaciones}</div>` : ""}
+                    ${p.observaciones ? `<div style="background:#fff176; padding:15px; border-radius:12px; font-weight:bold; border:2px solid #fbc02d; margin-top:10px;">⚠️ ${p.observaciones}</div>` : ""}
                 </div>
+
                 <div class="footer-pedido">
-                    <div>💳 ${p.metodoPago || 'Efectivo'}</div>
-                    <div style="font-size:1.3em;">💰 <b>Total: ${p.totalStr || '0 Gs'}</b></div>
+                    <div class="pago-metodo">💳 ${p.metodoPago || 'Efectivo'}</div>
+                    <div class="total-monto">💰 Total: ${p.totalStr || '0 Gs'}</div>
                 </div>
+                
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
@@ -85,28 +86,19 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.className = "aviso-cola";
-            aviso.innerText = `+${ids.length - 2} pedido(s) más en espera...`;
+            aviso.innerHTML = `...Hay ${ids.length - 2} pedido(s) más en cola ⚠️`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='grid-column: 1/span 2; text-align:center; font-size:1.5em; color:#888; direction: ltr; margin-top: 20%;'>✅ ¡Sin pedidos!</p>";
-        conteoAnterior = 0;
+        contenedor.innerHTML = "<p style='grid-column:1/span 2; text-align:center; font-size:2.5em; color:#888; font-weight:900; margin-top:20%;'>✅ ¡SIN PEDIDOS!</p>";
     }
     primeraCarga = false;
 });
 
 window.terminarPedido = (id) => {
-    if(sonidoListo) { 
-        sonidoListo.currentTime = 0; 
-        sonidoListo.play().catch(()=>{}); 
-    }
+    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
     const p = pedidosLocales[id];
-    if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => {
-        remove(ref(database, 'pedidos/' + id));
-    })
-    .catch(err => alert("Error al finalizar: " + err.message));
+    .then(() => { remove(ref(database, 'pedidos/' + id)); });
 };
