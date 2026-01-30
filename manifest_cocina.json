@@ -6,13 +6,13 @@
       "src": "LogoPow.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "LogoPow.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "start_url": "./cocina.html",
@@ -20,3 +20,4 @@
   "background_color": "#ffffff",
   "theme_color": "#ff8c00"
 }
+
