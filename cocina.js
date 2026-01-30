@@ -20,10 +20,7 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-document.addEventListener("click", () => {
-    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
-});
-
+// Escuchar cambios en la base de datos
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -32,22 +29,25 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
+        
+        // Alerta sonora para nuevos pedidos
         if (!primeraCarga && ids.length > conteoAnterior) { 
-            sonidoNuevo.currentTime = 0;
-            sonidoNuevo.play().catch(()=>{}); 
+            if (sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(() => console.log("Interacción requerida para sonido")); 
+            }
         }
         conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; 
-            const p = pedidos[id];
+            if (index > 1) return; // Mostrar solo 2 pedidos principales
             
+            const p = pedidos[id];
             let productosHTML = "";
+            
             for (let key in p.productos) {
-                const cant = p.productos[key];
-                if (cant > 0) {
-                    const nombre = key.replace("qty_", "").toUpperCase();
-                    productosHTML += `<div class="producto-item">${cant} x ${nombre}</div>`;
+                if (p.productos[key] > 0) {
+                    productosHTML += `<div class="producto-item">${p.productos[key]} x ${key.replace("qty_", "").toUpperCase()}</div>`;
                 }
             }
 
@@ -55,27 +55,20 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div class="header-pedido">
-                    <div class="tag-estado">
-                        ${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}
-                    </div>
-                    <div class="hora-pedido">
-                        🕒 ${p.hora || ''}
-                    </div>
+                    <span class="tag-estado">${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}</span>
+                    <span class="hora-pedido">🕒 ${p.hora || ''}</span>
                 </div>
                 
-                <div class="info-cliente">
-                    <div class="dato-linea">👤 ${p.cliente}</div>
-                    <div class="dato-linea">📍 ${p.entrega || 'Local'}</div>
-                </div>
-
+                <div class="info-cliente">👤 ${p.cliente}</div>
+                
                 <div class="contenedor-items">
                     ${productosHTML}
-                    ${p.observaciones ? `<div style="background:#fff176; padding:15px; border-radius:12px; font-weight:bold; border:2px solid #fbc02d; margin-top:10px;">⚠️ ${p.observaciones}</div>` : ""}
+                    ${p.observaciones ? `<div style="background:#fff176; padding:8px; border-radius:8px; font-size:0.85rem; margin-top:5px; font-weight:bold;">⚠️ ${p.observaciones}</div>` : ""}
                 </div>
 
                 <div class="footer-pedido">
-                    <div class="pago-metodo">💳 ${p.metodoPago || 'Efectivo'}</div>
-                    <div class="total-monto">💰 Total: ${p.totalStr || '0 Gs'}</div>
+                    <div>💳 ${p.metodoPago || 'Efectivo'}</div>
+                    <div style="color:#ff8c00; font-size:1rem;">💰 <b>${p.totalStr || ''}</b></div>
                 </div>
                 
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
@@ -83,22 +76,36 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(tarjeta);
         });
 
+        // Mostrar aviso si hay más de 2 pedidos en el sistema
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.className = "aviso-cola";
-            aviso.innerHTML = `...Hay ${ids.length - 2} pedido(s) más en cola ⚠️`;
+            aviso.innerText = `+${ids.length - 2} pedido(s) más en cola`;
             contenedor.appendChild(aviso);
         }
+
     } else {
-        contenedor.innerHTML = "<p style='grid-column:1/span 2; text-align:center; font-size:2.5em; color:#888; font-weight:900; margin-top:20%;'>✅ ¡SIN PEDIDOS!</p>";
+        contenedor.innerHTML = "<p style='text-align:center; font-size:1.5rem; color:#888; margin-top:20%; direction:ltr;'>Sin pedidos pendientes</p>";
+        conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
+// Función para finalizar pedido
 window.terminarPedido = (id) => {
-    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
+    if (sonidoListo) { 
+        sonidoListo.currentTime = 0; 
+        sonidoListo.play().catch(() => {}); 
+    }
+    
     const p = pedidosLocales[id];
+    if (!p) return;
+
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
+    
+    // Mover a historial y eliminar de pedidos activos
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => { remove(ref(database, 'pedidos/' + id)); });
+    .then(() => { 
+        remove(ref(database, 'pedidos/' + id)); 
+    });
 };
