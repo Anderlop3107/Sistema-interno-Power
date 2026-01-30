@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+      <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cocina - Pedidos Power</title>
     
@@ -17,26 +17,27 @@
     <link rel="stylesheet" href="style.css">
     <style>
     /* Estilos base ajustados para máximo espacio */
+
     body { 
         background-color: #f0f2f5; 
         font-family: 'Poppins', sans-serif; 
         margin: 0; 
-        padding: 5px; 
+        padding: 5px; /* Reducido para ganar espacio */
     }
 
     /* Contenedor Principal de Pedidos */
     #lista-pedidos {
         display: grid;
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr; /* Por defecto 1 columna */
         gap: 15px;
         padding: 10px;
-        margin-top: 0; 
+        margin-top: 0; /* Asegura que empiece arriba de todo */
     }
 
     /* Vista Doble en Horizontal (Landscape) */
     @media (min-width: 768px) or (orientation: landscape) {
         #lista-pedidos {
-            grid-template-columns: 1fr 1fr; 
+            grid-template-columns: 1fr 1fr; /* 2 columnas exactas */
             gap: 20px;
             max-width: 98%;
             margin: 0 auto;
@@ -52,7 +53,7 @@
         box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         display: flex;
         flex-direction: column;
-        min-height: 250px; 
+        min-height: 250px; /* Un poco más pequeño para evitar scroll */
     }
 
     .pedido-espera {
@@ -92,7 +93,7 @@
 </head>
 <body>
 
-    <div id="lista-pedidos">
+ <div id="lista-pedidos">
         <p style="text-align: center; color: #888; margin-top: 50px;">Esperando pedidos...</p>
     </div>
 
@@ -102,3 +103,4 @@
     <script type="module" src="cocina.js"></script>
 </body>
 </html>
+
