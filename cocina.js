@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -20,7 +20,63 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// Escuchar cambios en la base de datos
+// --- LÓGICA DE CONTROL DE ALARMA INTELIGENTE ---
+
+function detenerAlarmaAlVer() {
+    if (!document.hidden) { // Si el cocinero entra a la app (pestaña visible)
+        if (sonidoNuevo) {
+            sonidoNuevo.pause();
+            sonidoNuevo.currentTime = 0;
+        }
+    }
+}
+
+// Escuchar cuando el cocinero vuelve a la app desde otra (como TikTok)
+document.addEventListener("visibilitychange", detenerAlarmaAlVer);
+window.addEventListener("focus", detenerAlarmaAlVer);
+
+// También detener si toca cualquier parte de la pantalla
+document.addEventListener("click", () => {
+    if (sonidoNuevo) {
+        sonidoNuevo.pause();
+        sonidoNuevo.currentTime = 0;
+    }
+}, { once: false });
+
+// -----------------------------------------------
+
+// CAPA DE ACTIVACIÓN
+const capa = document.createElement('div');
+capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
+capa.innerHTML = `
+    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
+        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
+        <span style="font-size: 3em;">🔔</span>
+    </div>`;
+document.body.appendChild(capa);
+
+capa.onclick = () => {
+    if(sonidoNuevo) { 
+        sonidoNuevo.loop = true; 
+        sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }).catch(()=>{}); 
+    }
+    if ("Notification" in window) { 
+        Notification.requestPermission(); 
+    }
+    capa.remove();
+};
+
+function lanzarNotificacionVisual(nombreCliente) {
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'NUEVO_PEDIDO',
+            cliente: nombreCliente
+        });
+    }
+}
+
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -30,82 +86,84 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Alerta sonora para nuevos pedidos
         if (!primeraCarga && ids.length > conteoAnterior) { 
-            if (sonidoNuevo) {
+            if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
-                sonidoNuevo.play().catch(() => console.log("Interacción requerida para sonido")); 
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
             }
+            const ultimoId = ids[ids.length - 1];
+            lanzarNotificacionVisual(pedidos[ultimoId].cliente || "Nuevo");
         }
         conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Mostrar solo 2 pedidos principales
-            
+            if (index > 1) return; 
             const p = pedidos[id];
-            let productosHTML = "";
-            
+            let listaHTML = "<ul>";
             for (let key in p.productos) {
-                if (p.productos[key] > 0) {
-                    productosHTML += `<div class="producto-item">${p.productos[key]} x ${key.replace("qty_", "").toUpperCase()}</div>`;
+                const cant = p.productos[key];
+                if (cant > 0) {
+                    const nombre = key.replace("qty_", "").toUpperCase();
+                    listaHTML += `<li><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
                 }
             }
+            listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
-                <div class="header-pedido">
-                    <span class="tag-estado">${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}</span>
-                    <span class="hora-pedido">🕒 ${p.hora || ''}</span>
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
+                    <span>🕒 ${p.hora || ''}</span>
                 </div>
-                
-                <div class="info-cliente">👤 ${p.cliente}</div>
-                
-                <div class="contenedor-items">
-                    ${productosHTML}
-                    ${p.observaciones ? `<div style="background:#fff176; padding:8px; border-radius:8px; font-size:0.85rem; margin-top:5px; font-weight:bold;">⚠️ ${p.observaciones}</div>` : ""}
-                </div>
-
-                <div class="footer-pedido">
-                    <div>💳 ${p.metodoPago || 'Efectivo'}</div>
-                    <div style="color:#ff8c00; font-size:1rem;">💰 <b>${p.totalStr || ''}</b></div>
-                </div>
-                
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
+                <p style="margin: 10px 0;"><b>👤 ${p.cliente}</b></p>
+                <hr>
+                ${listaHTML}
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff3e0; padding:5px; border-radius:5px; margin-top:5px;">⚠️ ${p.observaciones}</div>` : ""}
+                <hr>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="background:#28a745; color:white; border:none; padding:10px; width:100%; border-radius:8px; font-weight:bold; cursor:pointer;">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
-        // Mostrar aviso si hay más de 2 pedidos en el sistema
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.className = "aviso-cola";
-            aviso.innerText = `+${ids.length - 2} pedido(s) más en cola`;
+            aviso.style = "grid-column: 1 / span 2; text-align: center; color: #ff8c00; font-weight: bold; padding: 10px;";
+            aviso.innerText = `+${ids.length - 2} pedido(s) más en espera`;
             contenedor.appendChild(aviso);
         }
-
     } else {
-        contenedor.innerHTML = "<p style='text-align:center; font-size:1.5rem; color:#888; margin-top:20%; direction:ltr;'>Sin pedidos pendientes</p>";
+        contenedor.innerHTML = "<p style='text-align:center; width:100%; color:#888;'>✅ ¡Sin pedidos pendientes!</p>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
-// Función para finalizar pedido
 window.terminarPedido = (id) => {
-    if (sonidoListo) { 
-        sonidoListo.currentTime = 0; 
-        sonidoListo.play().catch(() => {}); 
+    if(sonidoNuevo) { 
+        sonidoNuevo.pause(); 
+        sonidoNuevo.currentTime = 0; 
     }
-    
+    if(sonidoListo) { 
+        sonidoListo.currentTime = 0;
+        sonidoListo.play().catch(()=>{}); 
+    }
+
     const p = pedidosLocales[id];
     if (!p) return;
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
     
-    // Mover a historial y eliminar de pedidos activos
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => { 
-        remove(ref(database, 'pedidos/' + id)); 
-    });
+    .then(() => {
+        remove(ref(database, 'pedidos/' + id));
+    })
+    .catch(err => alert("Error al finalizar: " + err.message));
 };
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito'))
+            .catch(err => console.log('Error al registrar SW:', err));
+    });
+}
