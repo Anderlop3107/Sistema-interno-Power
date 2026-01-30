@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Power Analytics | BI Dashboard</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ff8c00">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -65,36 +62,42 @@
             display: flex; align-items: center; gap: 12px; padding: 12px;
             border-radius: 10px; border: none; background: transparent;
             color: var(--text-muted); cursor: pointer; font-weight: 600; width: 100%;
-            transition: 0.2s;
-            text-align: left;
+            transition: 0.2s; text-align: left;
         }
 
         .nav-btn.active { background: rgba(255, 140, 0, 0.1); color: var(--accent); }
         .nav-btn:hover:not(.active) { background: rgba(0,0,0,0.05); color: var(--text-dark); }
 
         /* TARJETAS KPI */
-        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 25px; }
         .kpi-card { 
-            background: var(--card); padding: 20px; border-radius: 15px;
+            background: var(--card); padding: 15px; border-radius: 15px;
             border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             display: flex; flex-direction: column; justify-content: center;
         }
-        .kpi-card span { color: var(--text-muted); font-size: 0.70rem; text-transform: uppercase; font-weight: bold; }
-        .kpi-card h2 { margin: 8px 0 0; font-size: 1.2rem; color: var(--text-dark); }
+        .kpi-card span { color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase; font-weight: bold; }
+        .kpi-card h2 { margin: 5px 0 0; font-size: 1.1rem; color: var(--text-dark); }
 
-        /* SECCIONES */
+        /* TABLAS Y SECCIONES */
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeIn 0.3s ease; }
-
         .card-pro { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
-
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.8rem; }
         td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-dark); }
 
+        /* BOTONES DE ACCIÓN (NUEVOS) */
+        .btn-acc {
+            border: none; padding: 8px; border-radius: 6px; cursor: pointer;
+            background: #f1f5f9; color: #64748b; transition: 0.2s;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-acc:hover { background: #e2e8f0; color: #1e293b; }
+        .btn-acc.edit:hover { background: #fef3c7; color: #d97706; }
+        .btn-acc.del:hover { background: #fee2e2; color: #dc2626; }
+
         .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
 
-        /* SWITCH MODO OSCURO */
         .theme-switch {
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px; background: var(--bg-main); border-radius: 12px; margin-bottom: 20px;
@@ -130,6 +133,7 @@
                 <button class="nav-btn active" onclick="cambiarVista('resumen', this)"><i data-lucide="layout-dashboard"></i> Resumen</button>
                 <button class="nav-btn" onclick="cambiarVista('clientes', this)"><i data-lucide="users"></i> Clientes</button>
                 <button class="nav-btn" onclick="cambiarVista('productos', this)"><i data-lucide="package"></i> Productos</button>
+                <button class="nav-btn" onclick="cambiarVista('pedidosya', this)" style="color: #ff3b00;"><i data-lucide="shopping-bag"></i> PedidosYa</button>
                 <button class="nav-btn" onclick="cambiarVista('delivery', this)" style="color: #2563eb;"><i data-lucide="truck"></i> Deliverys</button>
                 <button class="nav-btn" onclick="cambiarVista('historial', this)"><i data-lucide="clipboard-list"></i> Historial</button>
             </nav>
@@ -148,9 +152,10 @@
             <div class="stats-grid">
                 <div class="kpi-card"><span>Recaudación Total</span><h2 id="txtTotal">Gs. 0</h2></div>
                 <div class="kpi-card"><span>Total Pedidos</span><h2 id="txtCant">0</h2></div>
-                <div class="kpi-card"><span>Total Delivery</span><h2 id="txtDelivTotal" style="color: #2563eb;">Gs. 0</h2></div>
                 <div class="kpi-card"><span>Efectivo</span><h2 id="txtEfe" style="color: #16a34a;">Gs. 0</h2></div>
                 <div class="kpi-card"><span>Transferencia</span><h2 id="txtTra" style="color: #0284c7;">Gs. 0</h2></div>
+                <div class="kpi-card" style="background: rgba(255, 59, 0, 0.05); border: 1px solid #ff3b00;"><span>PedidosYa</span><h2 id="txtPedidosYa" style="color: #ff3b00;">Gs. 0</h2></div>
+                <div class="kpi-card"><span>Delivery Total</span><h2 id="txtDelivTotal" style="color: #2563eb;">Gs. 0</h2></div>
             </div>
 
             <div id="view-resumen" class="view-section active">
@@ -184,6 +189,16 @@
                 </div>
             </div>
 
+            <div id="view-pedidosya" class="view-section">
+                <div class="card-pro">
+                    <p style="font-weight: bold; margin-bottom: 20px;">REGISTRO EXTERNO (PEDIDOS YA)</p>
+                    <table id="tablaPedidosYa">
+                        <thead><tr><th>HORA</th><th>REFERENCIA</th><th>TOTAL</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div id="view-delivery" class="view-section">
                 <div class="card-pro">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -200,7 +215,15 @@
             <div id="view-historial" class="view-section">
                 <div class="card-pro">
                     <table id="tablaHistorial">
-                        <thead><tr><th>HORA</th><th>CLIENTE</th><th>TOTAL</th><th>ACCIÓN</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>HORA</th>
+                                <th>CLIENTE</th>
+                                <th>PAGO</th>
+                                <th>TOTAL</th>
+                                <th style="text-align: center;">ACCIONES</th>
+                            </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -211,18 +234,10 @@
     <script type="module" src="reportes.js"></script>
     <script>
         lucide.createIcons();
-
         function alternarTema() {
             const isDark = document.getElementById('toggleTheme').checked;
             document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
         }
-
-        // Nota: Las funciones cambiarVista, irAInicio y cargarDashboard 
-        // son manejadas por Reportes.js (vía window.xxx)
     </script>
 </body>
-
 </html>
-
-
-
