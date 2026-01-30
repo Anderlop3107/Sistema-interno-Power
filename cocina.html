@@ -24,23 +24,19 @@
         padding: 5px; /* Reducido para ganar espacio */
     }
 
-    /* Contenedor Principal de Pedidos */
-    #lista-pedidos {
-        display: grid;
-        grid-template-columns: 1fr; /* Por defecto 1 columna */
-        gap: 15px;
-        padding: 10px;
-        margin-top: 0; /* Asegura que empiece arriba de todo */
-    }
+ #lista-pedidos {
+    display: grid;
+    grid-template-columns: 1fr; /* Una columna en vertical */
+    gap: 15px;
+    padding: 10px;
+}
 
-    /* Vista Doble en Horizontal (Landscape) */
-    @media (min-width: 768px) or (orientation: landscape) {
-        #lista-pedidos {
-            grid-template-columns: 1fr 1fr; /* 2 columnas exactas */
-            gap: 20px;
-            max-width: 98%;
-            margin: 0 auto;
-        }
+/* Cuando el celular se pone de costado (horizontal) */
+@media (orientation: landscape) or (min-width: 768px) {
+    #lista-pedidos {
+        grid-template-columns: 1fr 1fr; /* DOS columnas */
+    }
+}
     }
 
     /* Tarjeta de Pedido Compacta */
@@ -103,4 +99,5 @@
     <script type="module" src="cocina.js"></script>
 </body>
 </html>
+
 
