@@ -20,6 +20,31 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
+// --- LÓGICA DE CONTROL DE ALARMA INTELIGENTE ---
+
+function detenerAlarmaAlVer() {
+    if (!document.hidden) { // Si el cocinero entra a la app (pestaña visible)
+        if (sonidoNuevo) {
+            sonidoNuevo.pause();
+            sonidoNuevo.currentTime = 0;
+        }
+    }
+}
+
+// Escuchar cuando el cocinero vuelve a la app desde otra (como TikTok)
+document.addEventListener("visibilitychange", detenerAlarmaAlVer);
+window.addEventListener("focus", detenerAlarmaAlVer);
+
+// También detener si toca cualquier parte de la pantalla
+document.addEventListener("click", () => {
+    if (sonidoNuevo) {
+        sonidoNuevo.pause();
+        sonidoNuevo.currentTime = 0;
+    }
+}, { once: false });
+
+// -----------------------------------------------
+
 // CAPA DE ACTIVACIÓN
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
@@ -35,7 +60,6 @@ document.body.appendChild(capa);
 capa.onclick = () => {
     if(sonidoNuevo) { 
         sonidoNuevo.loop = true; 
-        // Reproducir y pausar es un truco para "desbloquear" el audio en móviles
         sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }).catch(()=>{}); 
     }
     if ("Notification" in window) { 
@@ -62,7 +86,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Lógica de detección de nuevo pedido
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -73,7 +96,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
-        // Renderizado de las 2 tarjetas principales
         ids.forEach((id, index) => {
             if (index > 1) return; 
             const p = pedidos[id];
@@ -104,7 +126,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(tarjeta);
         });
 
-        // Aviso de pedidos excedentes
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.style = "grid-column: 1 / span 2; text-align: center; color: #ff8c00; font-weight: bold; padding: 10px;";
@@ -119,7 +140,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 });
 
 window.terminarPedido = (id) => {
-    // Detener alarma
     if(sonidoNuevo) { 
         sonidoNuevo.pause(); 
         sonidoNuevo.currentTime = 0; 
@@ -131,10 +151,8 @@ window.terminarPedido = (id) => {
 
     const p = pedidosLocales[id];
     if (!p) return;
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
     
-    // Mover a historial y borrar de pedidos
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
         remove(ref(database, 'pedidos/' + id));
@@ -142,7 +160,6 @@ window.terminarPedido = (id) => {
     .catch(err => alert("Error al finalizar: " + err.message));
 };
 
-// Registro de Service Worker para PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
