@@ -7,104 +7,147 @@
     
     <link rel="manifest" href="manifest_cocina.json">
     <link rel="icon" type="image/png" href="LogoPow.png">
+    <link rel="apple-touch-icon" href="LogoPow.png">
+    
+    <meta name="theme-color" content="#ff8c00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Power Cocina">
+
+    <link rel="stylesheet" href="style.css">
     
     <style>
-    body { 
-        background-color: #f0f2f5; 
-        font-family: 'Poppins', sans-serif; 
-        margin: 0; 
-        padding: 0;
-        /* Centrado vertical de todo el contenido */
-        display: flex;
-        align-items: center; 
-        justify-content: center;
-        min-height: 100vh; 
-    }
+        /* Reset para usar toda la pantalla y centrar tarjetas */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden; 
+        }
 
-    #lista-pedidos {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* 2 columnas obligatorias */
-        gap: 20px;
-        padding: 20px;
-        width: 100%;
-        max-width: 1200px;
-        direction: rtl; /* Primero a la derecha, segundo a la izquierda */
-        align-items: center; /* Centra las tarjetas entre sí */
-    }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .tarjeta-cocina {
-        direction: ltr; 
-        border: 5px solid #ff8c00;
-        padding: 25px;
-        border-radius: 30px;
-        background: white; 
-        box-shadow: 0 12px 25px rgba(0,0,0,0.15);
-        display: flex;
-        flex-direction: column;
-        /* TARJETA MÁS LARGA */
-        min-height: 500px; 
-        transition: transform 0.3s ease;
-    }
+        /* Contenedor Grid: 2 columnas, dirección de Derecha a Izquierda */
+        #lista-pedidos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 95vw;
+            height: 90vh; /* Ocupa casi todo el alto de la pantalla */
+            direction: rtl; /* Primero a la derecha, segundo a la izquierda */
+            padding: 10px;
+            box-sizing: border-box;
+        }
 
-    .pedido-espera {
-        background-color: rgba(255, 140, 0, 0.05) !important;
-        border-style: dashed; 
-        opacity: 0.8;
-    }
+        .tarjeta-cocina {
+            direction: ltr; /* Texto normal dentro de la tarjeta */
+            background: #f1ede6; /* Color crema de tu diseño */
+            border: 5px solid #ff8c00;
+            border-radius: 40px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* Tarjetas largas que ocupan todo el alto del contenedor */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
 
-    .coincidencia {
-        background-color: #fff176 !important; 
-        border-left: 10px solid #fbc02d;
-        padding: 12px;
-        font-weight: bold;
-        border-radius: 12px;
-        margin: 15px 0;
-        font-size: 1.2em;
-    }
+        .pedido-espera {
+            border-style: dashed;
+            opacity: 0.9;
+        }
 
-    ul { padding-left: 0; list-style: none; margin: 20px 0; flex-grow: 1; }
-    li { 
-        margin-bottom: 10px; 
-        font-size: 1.4em; /* Letra un poco más grande */
-        border-bottom: 2px solid #eee; 
-        padding-bottom: 5px; 
-    }
+        .header-pedido {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
 
-    .btn-listo-cocina {
-        width: 100%;
-        padding: 20px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        font-weight: bold;
-        font-size: 1.4em;
-        cursor: pointer;
-        margin-top: 20px;
-        box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
-    }
+        .info-cliente {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
 
-    /* Ajuste para que el aviso de cola no rompa el centrado */
-    .aviso-cola {
-        grid-column: 1 / span 2;
-        text-align: center;
-        color: #ff8c00;
-        font-weight: bold;
-        font-size: 1.2em;
-        direction: ltr;
-        margin-top: 10px;
-    }
+        /* Los productos se estiran para ocupar el espacio central */
+        .contenedor-items {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
 
-    @media (max-width: 700px) and (orientation: portrait) {
-        #lista-pedidos { grid-template-columns: 1fr; }
-        body { align-items: flex-start; padding-top: 20px; }
-    }
+        /* Pastillas amarillas de productos */
+        .producto-item {
+            background: #fff9e6;
+            border-left: 8px solid #ff8c00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #444;
+            display: flex;
+            gap: 10px;
+        }
+
+        .observacion-box {
+            background: #fff176;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            border: 2px solid #fbc02d;
+        }
+
+        .footer-pedido {
+            margin-top: auto;
+            font-size: 1.2em;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+
+        .btn-listo-cocina {
+            width: 100%;
+            padding: 20px;
+            background: #4caf50; 
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.8em;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 5px 0 #388e3c;
+            text-transform: uppercase;
+        }
+
+        .aviso-cola {
+            grid-column: 1 / span 2;
+            background: #fff3e0;
+            color: #ff8c00;
+            text-align: center;
+            padding: 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.3em;
+            direction: ltr;
+        }
     </style>
 </head>
 <body>
 
     <div id="lista-pedidos">
-        <p style="direction: ltr; text-align: center; grid-column: 1 / span 2; color: #888; font-size: 1.5em;">Esperando pedidos...</p>
+        <p style="direction: ltr; grid-column: 1/span 2; text-align: center; font-size: 1.5em; color: #888; margin-top: 20%;">Esperando pedidos...</p>
     </div>
 
     <audio id="notificacion" src="llegpedido.mp3"></audio>
