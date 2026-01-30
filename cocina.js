@@ -20,10 +20,13 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-function detenerAlarma() {
-    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
-}
-document.addEventListener("click", detenerAlarma);
+// Detener alarma al interactuar
+document.addEventListener("click", () => {
+    if (sonidoNuevo) {
+        sonidoNuevo.pause();
+        sonidoNuevo.currentTime = 0;
+    }
+});
 
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
@@ -33,37 +36,46 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
+        
         if (!primeraCarga && ids.length > conteoAnterior) { 
-            if(sonidoNuevo) { sonidoNuevo.play().catch(()=>{}); }
+            if(sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
+            }
         }
         conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
             if (index > 1) return; 
             const p = pedidos[id];
-            let listaHTML = "<ul>";
+            
+            let productosHTML = "";
             for (let key in p.productos) {
-                if (p.productos[key] > 0) {
-                    listaHTML += `<li><b style="color:#ff8c00;">${p.productos[key]}</b> x ${key.replace("qty_", "").toUpperCase()}</li>`;
+                const cant = p.productos[key];
+                if (cant > 0) {
+                    const nombre = key.replace("qty_", "").toUpperCase();
+                    productosHTML += `<div class="producto-item"><span>${cant} x</span> ${nombre}</div>`;
                 }
             }
-            listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-size: 1.2em; font-weight:bold; margin-bottom: 10px;">
-                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
+                <div class="header-pedido">
+                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⌛ EN COLA'}</span>
                     <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <h2 style="margin: 10px 0; font-size: 2em;">👤 ${p.cliente}</h2>
-                <hr>
-                ${listaHTML}
-                ${p.observaciones ? `<div class="coincidencia">⚠️ ${p.observaciones}</div>` : ""}
-                <hr>
-                <div style="margin-top: 10px; font-size: 1.1em;">
-                    <b>💰 TOTAL: ${p.totalStr || ''}</b><br>
-                    💳 ${p.metodoPago || ''}
+                <div class="info-cliente">
+                    <div>👤 <b>${p.cliente}</b></div>
+                    <div>📍 <b>${p.entrega || 'Local'}</b></div>
+                </div>
+                <div class="contenedor-items">
+                    ${productosHTML}
+                    ${p.observaciones ? `<div class="observacion-box">⚠️ ${p.observaciones}</div>` : ""}
+                </div>
+                <div class="footer-pedido">
+                    <div>💳 ${p.metodoPago || 'Efectivo'}</div>
+                    <div style="font-size:1.3em;">💰 <b>Total: ${p.totalStr || '0 Gs'}</b></div>
                 </div>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
@@ -77,16 +89,24 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='grid-column: 1 / span 2; text-align: center; color: #888; font-size: 1.5em;'>✅ ¡Sin pedidos pendientes!</p>";
+        contenedor.innerHTML = "<p style='grid-column: 1/span 2; text-align:center; font-size:1.5em; color:#888; direction: ltr; margin-top: 20%;'>✅ ¡Sin pedidos!</p>";
+        conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
 window.terminarPedido = (id) => {
-    detenerAlarma();
-    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
+    if(sonidoListo) { 
+        sonidoListo.currentTime = 0; 
+        sonidoListo.play().catch(()=>{}); 
+    }
     const p = pedidosLocales[id];
+    if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
+    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-        .then(() => { remove(ref(database, 'pedidos/' + id)); });
+    .then(() => {
+        remove(ref(database, 'pedidos/' + id));
+    })
+    .catch(err => alert("Error al finalizar: " + err.message));
 };
