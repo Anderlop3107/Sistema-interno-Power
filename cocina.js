@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -20,18 +20,30 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// LÓGICA DE ALARMA INTELIGENTE
+// --- LÓGICA DE CONTROL DE ALARMA INTELIGENTE ---
+
 function detenerAlarmaAlVer() {
-    if (!document.hidden && sonidoNuevo) {
+    if (!document.hidden) { // Si el cocinero entra a la app (pestaña visible)
+        if (sonidoNuevo) {
+            sonidoNuevo.pause();
+            sonidoNuevo.currentTime = 0;
+        }
+    }
+}
+
+// Escuchar cuando el cocinero vuelve a la app desde otra (como TikTok)
+document.addEventListener("visibilitychange", detenerAlarmaAlVer);
+window.addEventListener("focus", detenerAlarmaAlVer);
+
+// También detener si toca cualquier parte de la pantalla
+document.addEventListener("click", () => {
+    if (sonidoNuevo) {
         sonidoNuevo.pause();
         sonidoNuevo.currentTime = 0;
     }
-}
-document.addEventListener("visibilitychange", detenerAlarmaAlVer);
-window.addEventListener("focus", detenerAlarmaAlVer);
-document.addEventListener("click", () => {
-    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
-});
+}, { once: false });
+
+// -----------------------------------------------
 
 // CAPA DE ACTIVACIÓN
 const capa = document.createElement('div');
@@ -50,91 +62,108 @@ capa.onclick = () => {
         sonidoNuevo.loop = true; 
         sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }).catch(()=>{}); 
     }
-    if ("Notification" in window) { Notification.requestPermission(); }
+    if ("Notification" in window) { 
+        Notification.requestPermission(); 
+    }
     capa.remove();
 };
 
-        // Detectar productos repetidos para resaltar
-        const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
-        const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
-        const repetidos = prodP1.filter(item => prodP2.includes(item));
+function lanzarNotificacionVisual(nombreCliente) {
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'NUEVO_PEDIDO',
+            cliente: nombreCliente
+        });
+    }
+}
 
+onValue(ref(database, 'pedidos'), (snapshot) => {
+    const pedidos = snapshot.val();
+    pedidosLocales = pedidos || {};
+    const contenedor = document.getElementById('lista-pedidos');
+    contenedor.innerHTML = ""; 
+
+    if (pedidos) {
+        const ids = Object.keys(pedidos);
+        
+        if (!primeraCarga && ids.length > conteoAnterior) { 
+            if(sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
+            }
+            const ultimoId = ids[ids.length - 1];
+            lanzarNotificacionVisual(pedidos[ultimoId].cliente || "Nuevo");
+        }
+        conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo mostrar los 2 primeros
-
-
+            if (index > 1) return; 
             const p = pedidos[id];
-            let listaHTML = "<ul style='padding:0; list-style:none;'>";
-           
+            let listaHTML = "<ul>";
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
-                    const esRepetido = repetidos.includes(key);
-                    const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
-                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
+                    listaHTML += `<li><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
                 }
             }
             listaHTML += "</ul>";
 
-
             const tarjeta = document.createElement('div');
-            tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
                     <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
                     <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
+                <p style="margin: 10px 0;"><b>👤 ${p.cliente}</b></p>
                 <hr>
                 ${listaHTML}
-               
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
-               
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff3e0; padding:5px; border-radius:5px; margin-top:5px;">⚠️ ${p.observaciones}</div>` : ""}
                 <hr>
-                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="background:#28a745; color:white; border:none; padding:10px; width:100%; border-radius:8px; font-weight:bold; cursor:pointer;">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
-
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
-            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
+            aviso.style = "grid-column: 1 / span 2; text-align: center; color: #ff8c00; font-weight: bold; padding: 10px;";
+            aviso.innerText = `+${ids.length - 2} pedido(s) más en espera`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
-        conteoAnterior = 0;
-    }
-    primeraCarga = false;
-});
-
-        if (ids.length > 2) {
-            const aviso = document.createElement('div');
-            aviso.style = "grid-column: 1 / span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px; direction: ltr;";
-            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
-            contenedor.appendChild(aviso);
-        }
-    } else {
-        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa; margin-top: 50px; direction: ltr;'>✅ ¡Sin pedidos pendientes!</p>";
+        contenedor.innerHTML = "<p style='text-align:center; width:100%; color:#888;'>✅ ¡Sin pedidos pendientes!</p>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
 window.terminarPedido = (id) => {
-    if(sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
-    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
+    if(sonidoNuevo) { 
+        sonidoNuevo.pause(); 
+        sonidoNuevo.currentTime = 0; 
+    }
+    if(sonidoListo) { 
+        sonidoListo.currentTime = 0;
+        sonidoListo.play().catch(()=>{}); 
+    }
+
     const p = pedidosLocales[id];
     if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
+    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => { remove(ref(database, 'pedidos/' + id)); })
+    .then(() => {
+        remove(ref(database, 'pedidos/' + id));
+    })
     .catch(err => alert("Error al finalizar: " + err.message));
 };
 
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito'))
+            .catch(err => console.log('Error al registrar SW:', err));
+    });
+}
