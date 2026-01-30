@@ -107,37 +107,40 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                     listaHTML += `<li><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
                 }
             }
-            listaHTML += "</ul>";
+           listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
+            tarjeta.style.direction = "ltr"; 
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
                     <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
                     <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <p style="margin: 10px 0;"><b>👤 ${p.cliente}</b></p>
+                <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff3e0; padding:5px; border-radius:5px; margin-top:5px;">⚠️ ${p.observaciones}</div>` : ""}
+                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 <hr>
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="background:#28a745; color:white; border:none; padding:10px; width:100%; border-radius:8px; font-weight:bold; cursor:pointer;">LISTO ✅</button>
+                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column: 1 / span 2; text-align: center; color: #ff8c00; font-weight: bold; padding: 10px;";
-            aviso.innerText = `+${ids.length - 2} pedido(s) más en espera`;
+            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
+            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='text-align:center; width:100%; color:#888;'>✅ ¡Sin pedidos pendientes!</p>";
+        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
+
 
 window.terminarPedido = (id) => {
     if(sonidoNuevo) { 
@@ -167,3 +170,4 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('Error al registrar SW:', err));
     });
 }
+
