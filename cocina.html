@@ -16,30 +16,32 @@
 
     <link rel="stylesheet" href="style.css">
     <style>
-       /* Estilos base ajustados para máximo espacio */
     body { 
         background-color: #f0f2f5; 
         font-family: 'Poppins', sans-serif; 
         margin: 0; 
-        padding: 5px; /* Reducido para ganar espacio */
+        padding: 5px; 
     }
 
- #lista-pedidos {
-    display: grid;
-    grid-template-columns: 1fr; /* Una columna en vertical */
-    gap: 15px;
-    padding: 10px;
-}
-
-/* Cuando el celular se pone de costado (horizontal) */
-@media (orientation: landscape) or (min-width: 768px) {
+    /* Contenedor Principal de Pedidos */
     #lista-pedidos {
-        grid-template-columns: 1fr 1fr; /* DOS columnas */
-    }
-}
+        display: grid;
+        grid-template-columns: 1fr; 
+        gap: 15px;
+        padding: 10px;
+        margin-top: 0; 
     }
 
-    /* Tarjeta de Pedido Compacta */
+    /* Vista Doble en Horizontal - Diseño original recuperado */
+    @media (min-width: 768px) or (orientation: landscape) {
+        #lista-pedidos {
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px;
+            max-width: 98%;
+            margin: 0 auto;
+        }
+    }
+
     .tarjeta-cocina {
         border: 4px solid #ff8c00;
         padding: 15px;
@@ -48,7 +50,7 @@
         box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         display: flex;
         flex-direction: column;
-        min-height: 250px; /* Un poco más pequeño para evitar scroll */
+        min-height: 250px; 
     }
 
     .pedido-espera {
@@ -82,13 +84,10 @@
         margin-top: auto;
     }
 
-    /* Ocultar el header si no es necesario para ganar más espacio */
     .header-container { display: none; } 
     </style>
-
 </head>
 <body>
-
     <div id="lista-pedidos">
         <p style="text-align: center; color: #888; margin-top: 50px;">Esperando pedidos...</p>
     </div>
@@ -99,5 +98,3 @@
     <script type="module" src="cocina.js"></script>
 </body>
 </html>
-
-
