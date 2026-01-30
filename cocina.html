@@ -16,6 +16,7 @@
 
     <link rel="stylesheet" href="style.css">
     <style>
+    /* DISEÑO ORIGINAL RESTAURADO */
     body { 
         background-color: #f0f2f5; 
         font-family: 'Poppins', sans-serif; 
@@ -23,19 +24,18 @@
         padding: 5px; 
     }
 
-    /* Contenedor Principal de Pedidos */
+    /* Contenedor Principal en GRID */
     #lista-pedidos {
         display: grid;
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr; /* 1 columna en vertical */
         gap: 15px;
         padding: 10px;
-        margin-top: 0; 
     }
 
-    /* Vista Doble en Horizontal - Diseño original recuperado */
+    /* DISEÑO DE LADO A LADO (Horizontal o Tablets) */
     @media (min-width: 768px) or (orientation: landscape) {
         #lista-pedidos {
-            grid-template-columns: 1fr 1fr; 
+            grid-template-columns: 1fr 1fr; /* DOS COLUMNAS EXACTAS */
             gap: 20px;
             max-width: 98%;
             margin: 0 auto;
@@ -88,6 +88,7 @@
     </style>
 </head>
 <body>
+
     <div id="lista-pedidos">
         <p style="text-align: center; color: #888; margin-top: 50px;">Esperando pedidos...</p>
     </div>
