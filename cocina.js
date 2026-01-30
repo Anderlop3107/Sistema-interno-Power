@@ -20,30 +20,10 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// ALARMA INTELIGENTE
 function detenerAlarma() {
-    if (sonidoNuevo) {
-        sonidoNuevo.pause();
-        sonidoNuevo.currentTime = 0;
-    }
+    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) detenerAlarma(); });
-window.addEventListener("focus", detenerAlarma);
 document.addEventListener("click", detenerAlarma);
-
-// CAPA DE ACTIVACIÓN
-const capa = document.createElement('div');
-capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer;";
-capa.innerHTML = `<div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px;">
-    <img src="LogoPow.png" style="width: 100px;">
-    <h2 style="color: #ff8c00;">SISTEMA COCINA</h2>
-    <p>Toca aquí para activar</p>
-</div>`;
-document.body.appendChild(capa);
-capa.onclick = () => {
-    if(sonidoNuevo) { sonidoNuevo.loop = true; sonidoNuevo.play().then(()=>sonidoNuevo.pause()); }
-    capa.remove();
-};
 
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
@@ -53,20 +33,18 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
-        
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) { sonidoNuevo.play().catch(()=>{}); }
         }
         conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo mostramos 2 al mismo tiempo
-            
+            if (index > 1) return; 
             const p = pedidos[id];
             let listaHTML = "<ul>";
             for (let key in p.productos) {
                 if (p.productos[key] > 0) {
-                    listaHTML += `<li><b>${p.productos[key]}</b> x ${key.replace("qty_", "").toUpperCase()}</li>`;
+                    listaHTML += `<li><b style="color:#ff8c00;">${p.productos[key]}</b> x ${key.replace("qty_", "").toUpperCase()}</li>`;
                 }
             }
             listaHTML += "</ul>";
@@ -74,15 +52,19 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             const tarjeta = document.createElement('div');
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                <div style="display:flex; justify-content:space-between; font-size: 1.2em; font-weight:bold; margin-bottom: 10px;">
                     <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
                     <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <p style="margin: 10px 0;"><b>👤 ${p.cliente}</b></p>
+                <h2 style="margin: 10px 0; font-size: 2em;">👤 ${p.cliente}</h2>
                 <hr>
                 ${listaHTML}
                 ${p.observaciones ? `<div class="coincidencia">⚠️ ${p.observaciones}</div>` : ""}
                 <hr>
+                <div style="margin-top: 10px; font-size: 1.1em;">
+                    <b>💰 TOTAL: ${p.totalStr || ''}</b><br>
+                    💳 ${p.metodoPago || ''}
+                </div>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
@@ -90,12 +72,12 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column: 1 / span 2; text-align: center; color: #ff8c00; font-weight: bold; direction: ltr;";
-            aviso.innerText = `+${ids.length - 2} pedido(s) más en cola`;
+            aviso.className = "aviso-cola";
+            aviso.innerText = `+${ids.length - 2} pedido(s) más en espera...`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='grid-column: 1 / span 2; text-align: center; color: #888;'>✅ ¡Sin pedidos!</p>";
+        contenedor.innerHTML = "<p style='grid-column: 1 / span 2; text-align: center; color: #888; font-size: 1.5em;'>✅ ¡Sin pedidos pendientes!</p>";
     }
     primeraCarga = false;
 });
