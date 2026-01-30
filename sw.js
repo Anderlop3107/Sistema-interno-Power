@@ -1,26 +1,25 @@
-// 1. INSTALACIÓN Y ACTIVACIÓN
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
+self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
-// 2. EVENTO PUSH (Recibir notificación)
-self.addEventListener('push', function(event) {
-    const title = "🔥 ¡NUEVO PEDIDO!";
-    const options = {
-        body: "Toca para abrir la cocina",
-        icon: "LogoPow.png",       // Ruta relativa (busca en la misma carpeta)
-        badge: "LogoPow.png",      // Ruta relativa
-        image: "LogoPow.png",      // Para que se vea la imagen grande
-        vibrate: [500, 110, 500],
-        tag: 'pedido-' + Date.now(),
-        renotify: true,
-        requireInteraction: true,
-        data: { url: './cocina.html' }
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
+// Escucha el mensaje desde cocina.js
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'NUEVO_PEDIDO') {
+        const title = "🔥 ¡NUEVO PEDIDO!";
+        const options = {
+            body: `Cliente: ${event.data.cliente}`,
+            icon: 'LogoPow.png', 
+            badge: 'LogoPow.png',
+            vibrate: [500, 110, 500, 110, 500],
+            tag: 'pedido-nuevo',
+            renotify: true,
+            requireInteraction: true, // No desaparece hasta que se toca
+            data: { url: './cocina.html' }
+        };
+        self.registration.showNotification(title, options);
+    }
 });
 
-// 3. CONTROLAR EL CLIC (Abrir la app)
+// Controlar el clic
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
@@ -34,5 +33,3 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
-
-
