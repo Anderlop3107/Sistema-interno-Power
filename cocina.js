@@ -54,36 +54,33 @@ capa.onclick = () => {
     capa.remove();
 };
 
-onValue(ref(database, 'pedidos'), (snapshot) => {
-    const pedidos = snapshot.val();
-    pedidosLocales = pedidos || {};
-    const contenedor = document.getElementById('lista-pedidos');
-    contenedor.innerHTML = ""; 
+        // Detectar productos repetidos para resaltar
+        const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
+        const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
+        const repetidos = prodP1.filter(item => prodP2.includes(item));
 
-    if (pedidos) {
-        const ids = Object.keys(pedidos);
-        if (!primeraCarga && ids.length > conteoAnterior) { 
-            if(sonidoNuevo) {
-                sonidoNuevo.currentTime = 0;
-                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
-            }
-        }
-        conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Solo mostrar los 2 primeros
+
+
             const p = pedidos[id];
-            let listaHTML = "<ul>";
+            let listaHTML = "<ul style='padding:0; list-style:none;'>";
+           
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
-                    listaHTML += `<li><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
+                    const esRepetido = repetidos.includes(key);
+                    const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
+                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
                 }
             }
             listaHTML += "</ul>";
 
+
             const tarjeta = document.createElement('div');
+            tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
@@ -93,13 +90,29 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+               
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+               
                 <hr>
                 <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
+
+
+        if (ids.length > 2) {
+            const aviso = document.createElement('div');
+            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
+            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
+            contenedor.appendChild(aviso);
+        }
+    } else {
+        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
+        conteoAnterior = 0;
+    }
+    primeraCarga = false;
+});
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
@@ -124,3 +137,4 @@ window.terminarPedido = (id) => {
     .then(() => { remove(ref(database, 'pedidos/' + id)); })
     .catch(err => alert("Error al finalizar: " + err.message));
 };
+
