@@ -20,7 +20,7 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// LÓGICA DE ALARMA INTELIGENTE
+// --- LÓGICA DE ALARMA INTELIGENTE ---
 function detenerAlarmaAlVer() {
     if (!document.hidden && sonidoNuevo) {
         sonidoNuevo.pause();
@@ -33,7 +33,7 @@ document.addEventListener("click", () => {
     if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
 });
 
-// CAPA DE ACTIVACIÓN
+// --- CAPA DE ACTIVACIÓN (DESBLOQUEO DE AUDIO) ---
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
@@ -60,6 +60,7 @@ function lanzarNotificacionVisual(nombreCliente) {
     }
 }
 
+// --- ESCUCHA DE FIREBASE ---
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -68,6 +69,8 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
+        
+        // Disparar alarma si hay pedidos nuevos (evita la primera carga)
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -79,8 +82,9 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         conteoAnterior = ids.length;
 
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Mostramos los 2 primeros para diseño de 2 columnas
             const p = pedidos[id];
+            
             let listaHTML = "<ul>";
             for (let key in p.productos) {
                 const cant = p.productos[key];
@@ -110,6 +114,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(tarjeta);
         });
 
+        // Aviso si hay más de 2 pedidos
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
@@ -123,12 +128,15 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
+// --- FINALIZAR PEDIDO ---
 window.terminarPedido = (id) => {
     if(sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
+    
     const p = pedidosLocales[id];
     if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
+    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => { remove(ref(database, 'pedidos/' + id)); })
     .catch(err => alert("Error al finalizar: " + err.message));
