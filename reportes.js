@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, get, child, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -22,7 +22,7 @@ const PRECIOS = {
 };
 
 let chartProds, chartFinas;
-let dataGlobal = { pedidos: [], delivery: [], productos: {}, clientes: {}, total: 0, totalDeliv: 0, efe: 0, tra: 0 };
+let dataGlobal = { pedidos: [], delivery: [], productos: {}, clientes: {}, total: 0, totalDeliv: 0, efe: 0, tra: 0, totalPY: 0, pedidosYa: [] };
 
 const limpiarMonto = (v) => v ? parseInt(v.toString().replace(/\D/g, '')) || 0 : 0;
 const formatoGs = (v) => "Gs. " + (v || 0).toLocaleString('es-PY');
@@ -36,13 +36,10 @@ function obtenerPrecio(nombreSucio) {
     return 0;
 }
 
-// --- NUEVA FUNCIÓN PARA VOLVER A LA SELECCIÓN DE FECHA ---
+// --- FUNCIONES DE NAVEGACIÓN ---
 window.irAInicio = () => {
     document.getElementById('dashboard-final').style.display = 'none';
     document.getElementById('capa-inicial').style.display = 'flex';
-    // Opcional: limpiar los campos de fecha si deseas
-    // document.getElementById('fechaInicio').value = '';
-    // document.getElementById('fechaFin').value = '';
 };
 
 window.cambiarVista = (vistaId, btn) => {
@@ -62,14 +59,15 @@ window.cambiarVista = (vistaId, btn) => {
 
     const titulos = { 
         resumen: 'Resumen Ejecutivo', clientes: 'Ranking de Clientes Fieles (Top 5)', 
-        productos: 'Ventas por Producto', delivery: 'Control de Deliverys', 
-        historial: 'Historial de Formularios' 
+        productos: 'Ventas por Producto', pedidosya: 'Registro PedidosYa', 
+        delivery: 'Control de Deliverys', historial: 'Historial de Formularios' 
     };
     if (document.getElementById('tituloVista')) {
         document.getElementById('tituloVista').innerText = titulos[vistaId] || vistaId.toUpperCase();
     }
 };
 
+// --- LÓGICA PRINCIPAL ---
 window.cargarDashboard = async () => {
     const inicio = document.getElementById('fechaInicio').value;
     const fin = document.getElementById('fechaFin').value;
@@ -79,14 +77,14 @@ window.cargarDashboard = async () => {
         const snap = await get(child(ref(database), 'historial'));
         if (!snap.exists()) return alert("No hay datos.");
 
-        const data = snap.val();
-        dataGlobal = { pedidos: [], delivery: [], productos: {}, clientes: {}, total: 0, totalDeliv: 0, efe: 0, tra: 0 };
+        const dataOriginal = snap.val();
+        dataGlobal = { pedidos: [], delivery: [], productos: {}, clientes: {}, total: 0, totalDeliv: 0, efe: 0, tra: 0, totalPY: 0, pedidosYa: [] };
 
         const fI = new Date(inicio + "T00:00:00");
         const fF = new Date(fin + "T23:59:59");
 
-        for(let id in data){
-            const p = data[id];
+        for(let id in dataOriginal){
+            const p = dataOriginal[id];
             if(!p.fecha_final) continue;
             const [d, m, a] = p.fecha_final.split('-');
             const fP = new Date(a, m-1, d);
@@ -105,12 +103,20 @@ window.cargarDashboard = async () => {
                 let mDeli = limpiarMonto(p.monto_delivery);
                 let montoFinal = (limpiarMonto(p.totalNum || p.totalStr) === 0) ? (calcProductos + mDeli) : limpiarMonto(p.totalNum || p.totalStr);
                 
-                dataGlobal.pedidos.push({...p, totalCorregido: montoFinal});
+                // Guardamos el ID de Firebase dentro del objeto para usarlo en botones
+                dataGlobal.pedidos.push({...p, idFB: id, totalCorregido: montoFinal});
                 dataGlobal.total += montoFinal;
 
                 const metodo = (p.metodoPago || "").toLowerCase();
-                if(metodo.includes("efectivo")) dataGlobal.efe += montoFinal;
-                else if(metodo.includes("transferencia")) dataGlobal.tra += montoFinal;
+                const clienteNom = (p.cliente || "").toLowerCase();
+
+                if(clienteNom.includes("pedido ya") || clienteNom.includes("pedidosya") || clienteNom.includes("py") || metodo.includes("pedidosya")) {
+                    dataGlobal.totalPY += montoFinal;
+                    dataGlobal.pedidosYa.push({ hora: p.hora, ref: p.cliente, total: montoFinal });
+                } else {
+                    if(metodo.includes("efectivo") || metodo === "ef") dataGlobal.efe += montoFinal;
+                    else if(metodo.includes("transferencia") || metodo === "tr") dataGlobal.tra += montoFinal;
+                }
 
                 if(p.entrega === "Delivery") {
                     dataGlobal.totalDeliv += mDeli;
@@ -133,6 +139,7 @@ function renderDashboard(inicio, fin) {
     document.getElementById('txtDelivTotal').innerText = formatoGs(dataGlobal.totalDeliv);
     document.getElementById('txtEfe').innerText = formatoGs(dataGlobal.efe);
     document.getElementById('txtTra').innerText = formatoGs(dataGlobal.tra);
+    if(document.getElementById('txtPedidosYa')) document.getElementById('txtPedidosYa').innerText = formatoGs(dataGlobal.totalPY);
     document.getElementById('rangoTexto').innerText = `${inicio} al ${fin}`;
 
     const tbCli = document.querySelector('#view-clientes tbody');
@@ -147,26 +154,72 @@ function renderDashboard(inicio, fin) {
         tbProd.innerHTML = pRank.map(p => `<tr><td>${p[0]}</td><td><b>${p[1]} uds</b></td></tr>`).join('');
     }
 
+    const tbPY = document.querySelector('#view-pedidosya tbody');
+    if(tbPY) tbPY.innerHTML = dataGlobal.pedidosYa.map(p => `<tr><td>${p.hora || '--:--'}</td><td><b>${p.ref}</b></td><td>${formatoGs(p.total)}</td></tr>`).join('');
+
     const tbDel = document.querySelector('#view-delivery tbody');
     if(tbDel) tbDel.innerHTML = dataGlobal.delivery.map(d => `<tr><td>${d.fecha}</td><td>${d.cliente}</td><td>${formatoGs(d.monto)}</td></tr>`).join('');
 
     const tbHist = document.querySelector('#view-historial tbody');
     if(tbHist) {
-        tbHist.innerHTML = dataGlobal.pedidos.map((p, index) => `
+        tbHist.innerHTML = dataGlobal.pedidos.map((p) => `
             <tr>
                 <td>${p.hora || '--:--'}</td>
                 <td><b>${p.cliente}</b></td>
-                <td>${p.metodoPago || 'S/D'}</td>
+                <td><span style="font-size:10px; padding:2px 5px; background:#eee; border-radius:4px;">${p.metodoPago || 'S/D'}</span></td>
                 <td>${formatoGs(p.totalCorregido)}</td>
-                <td><button onclick="verDetallePedido(${index})" class="btn-primary" style="padding:5px 10px; font-size:11px;">FORMULARIO</button></td>
+                <td style="display:flex; gap:5px; justify-content:center;">
+                    <button onclick="verDetallePedidoPorID('${p.idFB}')" class="btn-acc" title="Ver Ticket"><i data-lucide="eye"></i></button>
+                    <button onclick="editarPedido('${p.idFB}', '${p.cliente}', '${p.totalCorregido}', '${p.metodoPago}')" class="btn-acc edit" title="Editar"><i data-lucide="edit-3"></i></button>
+                    <button onclick="anularPedido('${p.idFB}')" class="btn-acc del" title="Anular"><i data-lucide="trash-2"></i></button>
+                </td>
             </tr>`).join('');
+        lucide.createIcons();
     }
     renderCharts();
 }
 
-// Función Modal de Detalle (Ticket)
-window.verDetallePedido = (index) => {
-    const p = dataGlobal.pedidos[index];
+// --- FUNCIONES DE ACCIÓN (EDITAR / ANULAR / VER) ---
+
+window.anularPedido = async (idFirebase) => {
+    if (confirm("¿Estás seguro de que deseas ANULAR este pedido? Se eliminará de la base de datos.")) {
+        try {
+            await remove(ref(database, `historial/${idFirebase}`));
+            alert("Pedido eliminado.");
+            window.cargarDashboard();
+        } catch (e) { alert("Error: " + e.message); }
+    }
+};
+
+window.editarPedido = async (idFirebase, cliente, montoActual, pagoActual) => {
+    const nuevoMonto = prompt(`Monto actual: ${montoActual}\nIngrese el NUEVO monto total:`, montoActual);
+    if (nuevoMonto === null) return;
+
+    const nuevoPago = prompt(`Método actual: ${pagoActual}\nNuevo método (Efectivo, Transferencia, PedidosYa):`, pagoActual);
+    if (nuevoPago === null) return;
+
+    const motivo = prompt(`SEGURIDAD: ¿Por qué cambias el pedido? (Ej: Agregó un lomito):`);
+    if (!motivo) return alert("Debes poner un motivo para guardar.");
+
+    const fechaEdicion = new Date().toLocaleString();
+    const notaSeguridad = `[Editado ${fechaEdicion}]: ${motivo} (Monto anterior: ${montoActual})`;
+
+    const actualizaciones = {};
+    actualizaciones[`historial/${idFirebase}/totalNum`] = limpiarMonto(nuevoMonto);
+    actualizaciones[`historial/${idFirebase}/metodoPago`] = nuevoPago;
+    actualizaciones[`historial/${idFirebase}/notas_edicion`] = notaSeguridad;
+
+    try {
+        await update(ref(database), actualizaciones);
+        alert("¡Guardado correctamente!");
+        window.cargarDashboard();
+    } catch (e) { alert("Error: " + e.message); }
+};
+
+window.verDetallePedidoPorID = async (idFirebase) => {
+    const snap = await get(child(ref(database), `historial/${idFirebase}`));
+    const p = snap.val();
+    
     let itemsHtml = "";
     let subtotalP = 0;
     for (let k in p.productos) {
@@ -179,25 +232,30 @@ window.verDetallePedido = (index) => {
             itemsHtml += `<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #ccc;"><span>${nom} (x${cant})</span><b>${formatoGs(sub)}</b></div>`;
         }
     }
-    const mDeli = limpiarMonto(p.monto_delivery);
+
+    const notaSeguridadHtml = p.notas_edicion 
+    ? `<div style="margin-top:15px; padding:10px; background:#fff3e0; border-left:4px solid #ff8c00; font-size:11px; color:#e65100; border-radius:4px;">
+         <b>🛡️ REGISTRO DE SEGURIDAD:</b><br>${p.notas_edicion}
+       </div>` : "";
+
     const modal = document.createElement('div');
     modal.id = "modal-detalle-pedido";
     modal.style = "position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px;";
     modal.innerHTML = `
         <div style="background:white; color:#333; padding:25px; border-radius:15px; width:100%; max-width:350px;">
-            <center><h3 style="margin:0; color:#ff8c00;">TICKET</h3><small>${p.fecha_final}</small></center>
-            <hr><p><b>Cliente:</b> ${p.cliente}</p>
+            <center><h3 style="margin:0; color:#ff8c00;">TICKET</h3><small>${p.fecha_final} - ${p.hora}</small></center>
+            <hr><p><b>Cliente:</b> ${p.cliente}<br><b>Pago:</b> ${p.metodoPago || 'S/D'}</p>
             <div style="margin:10px 0; max-height:180px; overflow-y:auto;">${itemsHtml}</div>
             <div style="border-top:2px solid #eee; padding-top:10px;">
-                <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span><span>${formatoGs(subtotalP)}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Delivery:</span><span>${formatoGs(mDeli)}</span></div>
-                <div style="display:flex; justify-content:space-between; font-weight:bold; color:#ff6b00;"><span>TOTAL:</span><span>${formatoGs(subtotalP+mDeli)}</span></div>
+                <div style="display:flex; justify-content:space-between; font-weight:bold; color:#ff6b00; font-size:1.2rem;"><span>TOTAL:</span><span>${formatoGs(limpiarMonto(p.totalNum || p.totalStr))}</span></div>
             </div>
-            <button onclick="document.getElementById('modal-detalle-pedido').remove()" style="width:100%; margin-top:15px; padding:10px; background:#333; color:white; border-radius:10px;">CERRAR</button>
+            ${notaSeguridadHtml}
+            <button onclick="document.getElementById('modal-detalle-pedido').remove()" style="width:100%; margin-top:15px; padding:12px; background:#333; color:white; border:none; border-radius:10px; cursor:pointer;">CERRAR</button>
         </div>`;
     document.body.appendChild(modal);
 };
 
+// --- GRÁFICOS ---
 function renderCharts() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const textColor = isDark ? '#94a3b8' : '#64748b';
@@ -216,7 +274,13 @@ function renderCharts() {
         if(chartFinas) chartFinas.destroy();
         chartFinas = new Chart(ctxFinas, {
             type: 'doughnut',
-            data: { labels: ['Efectivo', 'Transferencia'], datasets: [{ data: [dataGlobal.efe, dataGlobal.tra], backgroundColor: ['#16a34a', '#0284c7'] }] },
+            data: { 
+                labels: ['Efectivo', 'Transferencia', 'PedidosYa'], 
+                datasets: [{ 
+                    data: [dataGlobal.efe, dataGlobal.tra, dataGlobal.totalPY], 
+                    backgroundColor: ['#16a34a', '#0284c7', '#ff3b00'] 
+                }] 
+            },
             options: { maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:textColor}}} }
         });
     }
