@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -20,30 +20,18 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// --- LÓGICA DE CONTROL DE ALARMA INTELIGENTE ---
-
+// LÓGICA DE ALARMA INTELIGENTE
 function detenerAlarmaAlVer() {
-    if (!document.hidden) { // Si el cocinero entra a la app (pestaña visible)
-        if (sonidoNuevo) {
-            sonidoNuevo.pause();
-            sonidoNuevo.currentTime = 0;
-        }
-    }
-}
-
-// Escuchar cuando el cocinero vuelve a la app desde otra (como TikTok)
-document.addEventListener("visibilitychange", detenerAlarmaAlVer);
-window.addEventListener("focus", detenerAlarmaAlVer);
-
-// También detener si toca cualquier parte de la pantalla
-document.addEventListener("click", () => {
-    if (sonidoNuevo) {
+    if (!document.hidden && sonidoNuevo) {
         sonidoNuevo.pause();
         sonidoNuevo.currentTime = 0;
     }
-}, { once: false });
-
-// -----------------------------------------------
+}
+document.addEventListener("visibilitychange", detenerAlarmaAlVer);
+window.addEventListener("focus", detenerAlarmaAlVer);
+document.addEventListener("click", () => {
+    if (sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
+});
 
 // CAPA DE ACTIVACIÓN
 const capa = document.createElement('div');
@@ -62,18 +50,13 @@ capa.onclick = () => {
         sonidoNuevo.loop = true; 
         sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }).catch(()=>{}); 
     }
-    if ("Notification" in window) { 
-        Notification.requestPermission(); 
-    }
+    if ("Notification" in window) { Notification.requestPermission(); }
     capa.remove();
 };
 
 function lanzarNotificacionVisual(nombreCliente) {
     if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'NUEVO_PEDIDO',
-            cliente: nombreCliente
-        });
+        navigator.serviceWorker.controller.postMessage({ type: 'NUEVO_PEDIDO', cliente: nombreCliente });
     }
 }
 
@@ -85,7 +68,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
-        
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -107,7 +89,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                     listaHTML += `<li><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
                 }
             }
-           listaHTML += "</ul>";
+            listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
             tarjeta.style.direction = "ltr"; 
@@ -135,39 +117,25 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
+        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa; margin-top: 50px;'>✅ ¡Sin pedidos pendientes!</p>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
-
 window.terminarPedido = (id) => {
-    if(sonidoNuevo) { 
-        sonidoNuevo.pause(); 
-        sonidoNuevo.currentTime = 0; 
-    }
-    if(sonidoListo) { 
-        sonidoListo.currentTime = 0;
-        sonidoListo.play().catch(()=>{}); 
-    }
-
+    if(sonidoNuevo) { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }
+    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(()=>{}); }
     const p = pedidosLocales[id];
     if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => {
-        remove(ref(database, 'pedidos/' + id));
-    })
+    .then(() => { remove(ref(database, 'pedidos/' + id)); })
     .catch(err => alert("Error al finalizar: " + err.message));
 };
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrado con éxito'))
-            .catch(err => console.log('Error al registrar SW:', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('Error SW:', err));
     });
 }
-
