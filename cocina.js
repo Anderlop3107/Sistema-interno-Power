@@ -16,12 +16,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// --- BLOQUEO DE SCROLL (NUEVO) ---
-document.documentElement.style.overflow = "hidden"; 
-document.body.style.overflow = "hidden";
-document.body.style.height = "100vh";
-document.body.style.margin = "0";
-
 // 3. VARIABLES DE CONTROL
 const sonidoNuevo = document.getElementById('notificacion');
 const sonidoListo = document.getElementById('sonidoListo');
@@ -79,7 +73,7 @@ function lanzarNotificacionVisual(nombreCliente) {
     }
 }
 
-// 6. ESCUCHAR PEDIDOS (DISEÑO ORIGINAL SIN SCROLL)
+// 6. ESCUCHAR PEDIDOS (INTERFAZ DEL VIEJO)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -87,20 +81,14 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     
     contenedor.innerHTML = ""; 
     contenedor.style.display = "grid";
-    contenedor.style.gridTemplateColumns = "1fr 1fr"; 
+    contenedor.style.gridTemplateColumns = "1fr 1fr"; // Dos columnas
     contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; 
-    
-    // Ajuste para que el contenedor ocupe la pantalla exacta (NUEVO)
-    contenedor.style.height = "100vh";
-    contenedor.style.width = "100vw";
-    contenedor.style.overflow = "hidden";
-    contenedor.style.padding = "10px";
-    contenedor.style.boxSizing = "border-box";
+    contenedor.style.direction = "rtl"; // Orden de derecha a izquierda
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
+        // Disparar Alarma si hay pedidos nuevos
         if (!primeraCarga && ids.length > conteoAnterior) { 
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -111,12 +99,13 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
+        // Lógica de comparación para resaltar productos repetidos (Del Viejo)
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Solo muestra los 2 primeros
             const p = pedidos[id];
             
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
@@ -125,6 +114,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
                     const esRepetido = repetidos.includes(key);
+                    // Estilo amarillo si el producto se repite en el pedido de al lado
                     const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
                     listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
                 }
@@ -132,13 +122,8 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
-            tarjeta.style.direction = "ltr"; 
+            tarjeta.style.direction = "ltr"; // Contenido interno de izquierda a derecha
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
-            
-            // Forzamos a que la tarjeta no estire la pantalla (NUEVO)
-            tarjeta.style.maxHeight = "calc(100vh - 60px)";
-            tarjeta.style.overflow = "hidden"; 
-
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
                     <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
@@ -168,8 +153,9 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-// 7. FINALIZAR PEDIDO
+// 7. FINALIZAR PEDIDO (MEZCLADO)
 window.terminarPedido = (id) => {
+    // Detener alarma si está sonando
     if(sonidoNuevo) { 
         sonidoNuevo.pause(); 
         sonidoNuevo.currentTime = 0; 
@@ -183,8 +169,10 @@ window.terminarPedido = (id) => {
     if (!p) return;
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
     
+    // Guardar en historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
+        // Eliminar de pedidos activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
@@ -196,3 +184,4 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Cocina OK'));
     });
 }
+
