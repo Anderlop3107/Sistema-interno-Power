@@ -2,7 +2,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-
 // 2. CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -14,10 +13,8 @@ const firebaseConfig = {
     appId: "1:269752304723:web:ab7ccac47a7859ce0672a6"
 };
 
-
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-
 
 // 3. VARIABLES DE CONTROL
 const sonidoNuevo = document.getElementById('notificacion');
@@ -26,82 +23,80 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-
-// 4. CAPA DE ACTIVACIÓN (Para habilitar sonido en navegadores)
+// 4. CAPA DE ACTIVACIÓN MEJORADA
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
     <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
         <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
-        <p>Toca para activar el sistema de cocina</p>
+        <h1 style="color: #ff8c00; font-size: 24px;">SISTEMA COCINA - POWER</h1>
+        <p>Toca para activar sonidos y notificaciones</p>
         <span style="font-size: 3em;">🔔</span>
     </div>`;
 document.body.appendChild(capa);
 
-
 capa.onclick = () => {
-    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
-    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
+    // Activar audios
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); }); }
+    
+    // SOLICITUD EXPLÍCITA DE PERMISOS (Mejora solicitada)
+    if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+            console.log("Permiso de notificación:", permission);
+        });
+    }
+    
     capa.remove();
 };
 
-
-// Función para lanzar la alerta al celular
-function lanzarNotificacionExterna(nombre) {
-    if (Notification.permission === "granted") {
-        new Notification("🍔 ¡NUEVO PEDIDO!", {
-            body: `Preparar pedido de: ${nombre}`,
-            icon: "LogoPow.png",
-            vibrate: [300, 100, 300]
+// 5. FUNCIÓN DE NOTIFICACIÓN VÍA SERVICE WORKER (Mejora solicitada)
+function lanzarNotificacionSW(nombreCliente) {
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        // Enviamos el mensaje al sw.js para que él maneje la alerta
+        navigator.serviceWorker.controller.postMessage({
+            type: 'NUEVO_PEDIDO',
+            cliente: nombreCliente
         });
     } else {
-        // Si no tenemos permiso todavía, lo pedimos
-        Notification.requestPermission();
+        // Fallback: Si el SW no responde, intentar notificación normal
+        new Notification("🍔 ¡NUEVO PEDIDO!", { body: `Cliente: ${nombreCliente}`, icon: "LogoPow.png" });
     }
 }
 
-
-// 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
+// 6. ESCUCHAR PEDIDOS EN TIEMPO REAL
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
    
-    contenedor.innerHTML = ""; // Limpiar pantalla
+    contenedor.innerHTML = ""; 
     contenedor.style.display = "grid";
     contenedor.style.gridTemplateColumns = "1fr 1fr";
-    contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; // Pedido nuevo a la derecha
-
+    contenedor.style.direction = "rtl"; 
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
        
-        // Alerta sonora si hay un pedido nuevo
         if (!primeraCarga && ids.length > conteoAnterior) {
-    if(sonidoNuevo) {
-        sonidoNuevo.currentTime = 0;
-        sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
-    }
-   
-    // Sacamos el nombre del último pedido para la notificación
-    const ultimoId = ids[ids.length - 1];
-    const nombreCliente = pedidos[ultimoId].cliente;
-    lanzarNotificacionExterna(nombreCliente);
-}
+            if(sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
+            }
+            
+            // Usar la nueva función vía Service Worker
+            const ultimoId = ids[ids.length - 1];
+            lanzarNotificacionSW(pedidos[ultimoId].cliente || "Nuevo");
+        }
         conteoAnterior = ids.length;
 
-
-        // Detectar productos repetidos para resaltar
+        // Lógica de productos repetidos
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
-
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo mostrar los 2 primeros
-
+            if (index > 1) return; 
 
             const p = pedidos[id];
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
@@ -117,7 +112,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             }
             listaHTML += "</ul>";
 
-
             const tarjeta = document.createElement('div');
             tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
@@ -129,16 +123,13 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-               
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
-               
+                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 <hr>
                 <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
-
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
@@ -153,20 +144,17 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-
-// 6. FUNCIÓN PARA FINALIZAR PEDIDO
+// 7. FUNCIÓN PARA FINALIZAR PEDIDO (Mantiene tus estadísticas originales)
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
 
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
    
-    // 1. Mover al historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // 2. Actualizar estadísticas de productos
+        // Actualizar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
@@ -174,8 +162,7 @@ window.terminarPedido = (id) => {
             }
         }
 
-
-        // 3. Monto de Delivery si corresponde
+        // Monto de Delivery
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -184,18 +171,16 @@ window.terminarPedido = (id) => {
             }
         }
        
-        // 4. Quitar de activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-
-// CONTRATAR AL EMPLEADO (Service Worker)
+// 8. REGISTRO DE SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker del Vendedor listo', reg))
-            .catch(err => console.log('Error al contratar SW', err));
+            .then(reg => console.log('Service Worker de Cocina activo', reg))
+            .catch(err => console.log('Error SW:', err));
     });
 }
