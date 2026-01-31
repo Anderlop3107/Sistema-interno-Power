@@ -23,28 +23,22 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// 4. CAPA DE ACTIVACIÓN (Con solicitud de permisos nueva)
+// 4. CAPA DE ACTIVACIÓN (Para habilitar sonido en navegadores)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
-    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
-        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
-        <p>Toca para activar el sistema de cocina</p>
-        <span style="font-size: 3em;">🔔</span>
-    </div>`;
+    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
+        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
+        <span style="font-size: 3em;">🔔</span>
+    </div>`;
 document.body.appendChild(capa);
 
 capa.onclick = () => {
-    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
-    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
-    
-    // SOLICITUD DE PERMISOS (Del código nuevo)
-    if ("Notification" in window) {
-        Notification.requestPermission();
-    }
-    
-    capa.remove();
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
+    capa.remove();
 };
 
 // NUEVA FUNCIÓN DE NOTIFICACIÓN (vía postMessage)
@@ -188,5 +182,6 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('Error al contratar SW', err));
     });
 }
+
 
 
