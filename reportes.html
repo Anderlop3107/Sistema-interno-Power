@@ -150,14 +150,36 @@
             </header>
 
             <div class="stats-grid">
-                <div class="kpi-card"><span>Recaudación Total</span><h2 id="txtTotal">Gs. 0</h2></div>
-                <div class="kpi-card"><span>Total Pedidos</span><h2 id="txtCant">0</h2></div>
-                <div class="kpi-card"><span>Efectivo</span><h2 id="txtEfe" style="color: #16a34a;">Gs. 0</h2></div>
-                <div class="kpi-card"><span>Transferencia</span><h2 id="txtTra" style="color: #0284c7;">Gs. 0</h2></div>
-                <div class="kpi-card" style="background: rgba(255, 59, 0, 0.05); border: 1px solid #ff3b00;"><span>PedidosYa</span><h2 id="txtPedidosYa" style="color: #ff3b00;">Gs. 0</h2></div>
-                <div class="kpi-card"><span>Delivery Total</span><h2 id="txtDelivTotal" style="color: #2563eb;">Gs. 0</h2></div>
-            </div>
+    <div class="kpi-card">
+        <span>Recaudación Bruta</span>
+        <h2 id="txtTotal">Gs. 0</h2>
+    </div>
 
+    <div class="kpi-card">
+        <span>Total Pedidos</span>
+        <h2 id="txtCant">0</h2>
+    </div>
+
+    <div class="kpi-card">
+        <span>Efectivo (Comida)</span>
+        <h2 id="txtEfe" style="color: #16a34a;">Gs. 0</h2>
+    </div>
+
+    <div class="kpi-card">
+        <span>Transf. (Comida)</span>
+        <h2 id="txtTra" style="color: #0284c7;">Gs. 0</h2>
+    </div>
+
+    <div class="kpi-card" style="background: rgba(255, 59, 0, 0.05); border: 1px solid #ff3b00;">
+        <span>PedidosYa (Neto)</span>
+        <h2 id="txtPedidosYa" style="color: #ff3b00;">Gs. 0</h2>
+    </div>
+
+    <div class="kpi-card" style="border-left: 4px solid #2563eb;">
+        <span>Total Fletes (Delivery)</span>
+        <h2 id="txtDelivTotal" style="color: #2563eb;">Gs. 0</h2>
+    </div>
+</div>
             <div id="view-resumen" class="view-section active">
                 <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px;">
                     <div class="card-pro">
@@ -241,3 +263,4 @@
     </script>
 </body>
 </html>
+
