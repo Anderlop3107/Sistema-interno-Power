@@ -23,121 +23,148 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// 4. CAPA DE ACTIVACIÓN (Para habilitar sonido en navegadores)
+// 4. CAPA DE ACTIVACIÓN (CON BLOQUEO DE TAMAÑO PARA QUE NO SE ACHIQUE)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
-    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
-        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
-        <p>Toca para activar el sistema de cocina</p>
-        <span style="font-size: 3em;">🔔</span>
+    <div style="border: 3px solid #ff8c00 !important; padding: 50px 30px !important; border-radius: 25px !important; width: 85% !important; max-width: 450px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; background: white !important;">
+        <img src="LogoPow.png" alt="Logo" style="width: 150px !important; margin-bottom: 20px !important; display: inline-block !important;">
+        <h1 style="color: #ff8c00 !important; font-size: 28px !important; margin: 15px 0 !important; font-weight: bold !important;">PEDIDOS - POWER</h1>
+        <p style="font-size: 1.2em !important; color: #444 !important; margin-bottom: 20px !important;">Toca para activar el sistema de cocina</p>
+        <div style="font-size: 5em !important;">🔔</div>
     </div>`;
 document.body.appendChild(capa);
 
 capa.onclick = () => {
     if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
     if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
-    capa.remove(); 
+    if ("Notification" in window) { Notification.requestPermission(); }
+    capa.remove();
 };
 
-// 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
+// 5. NOTIFICACIÓN EXTERNA
+function lanzarNotificacionExterna(nombre) {
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'NUEVO_PEDIDO',
+            cliente: nombre || "Nuevo"
+        });
+    }
+}
+
+// 6. RENDERIZADO DE PEDIDOS (CON SUPERPODER !IMPORTANT)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
     
-    contenedor.innerHTML = ""; // Limpiar pantalla
+    contenedor.innerHTML = ""; 
     contenedor.style.display = "grid";
     contenedor.style.gridTemplateColumns = "1fr 1fr";
-    contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; // Pedido nuevo a la derecha
+    contenedor.style.gap = "20px";
+    contenedor.style.direction = "rtl"; 
+    contenedor.style.padding = "15px";
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Alerta sonora si hay un pedido nuevo
-        if (!primeraCarga && ids.length > conteoAnterior) { 
-            if(sonidoNuevo) sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
+        if (!primeraCarga && ids.length > conteoAnterior) {
+            if(sonidoNuevo) {
+                sonidoNuevo.currentTime = 0;
+                sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
+            }
+            const ultimoId = ids[ids.length - 1];
+            lanzarNotificacionExterna(pedidos[ultimoId].cliente);
         }
         conteoAnterior = ids.length;
 
-        // Detectar productos repetidos para resaltar
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo mostrar los 2 primeros
+            if (index > 1) return; 
 
             const p = pedidos[id];
-            let listaHTML = "<ul style='padding:0; list-style:none;'>";
+            let listaHTML = "<ul style='padding:0 !important; list-style:none !important; margin:0 !important;'>";
             
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
                     const esRepetido = repetidos.includes(key);
-                    const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
-                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
+                    const estiloLi = `padding:12px !important; margin: 8px 0 !important; border-radius:10px !important; font-size: 1.15em !important; display: block !important; ${esRepetido ? 'background:#fff8e1 !important; border-left:8px solid #ff8c00 !important; font-weight:bold !important; color:#000 !important;' : 'color:#333 !important;'}`;
+                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00 !important; font-weight:bold !important;">${cant}</span> x ${nombre}</li>`;
                 }
             }
             listaHTML += "</ul>";
 
             const tarjeta = document.createElement('div');
-            tarjeta.style.direction = "ltr"; 
+            tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
+            
+            // BLOQUEO DE ESTILOS DE LA TARJETA
+            tarjeta.style.setProperty('padding', '25px', 'important');
+            tarjeta.style.setProperty('background-color', 'white', 'important');
+            tarjeta.style.setProperty('border-radius', '25px', 'important');
+            tarjeta.style.setProperty('box-shadow', '0 6px 15px rgba(0,0,0,0.1)', 'important');
+            tarjeta.style.setProperty('min-height', '450px', 'important');
+            tarjeta.style.setProperty('display', 'flex', 'important');
+            tarjeta.style.setProperty('flex-direction', 'column', 'important');
+
             tarjeta.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
-                    <span>🕒 ${p.hora || ''}</span>
+                <div style="display:flex !important; justify-content:space-between !important; font-weight:bold !important; font-size: 1.3em !important; margin-bottom:15px !important;">
+                    <span style="color:#ff8c00 !important;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
+                    <span style="color:#555 !important;">🕒 ${p.hora || ''}</span>
                 </div>
-                <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
-                <hr>
-                ${listaHTML}
+                <div style="margin-bottom: 15px !important; font-size: 1.2em !important;">
+                    <p style="margin:4px 0 !important;"><b>👤 ${p.cliente}</b></p>
+                    <p style="margin:4px 0 !important; color:#666 !important;">📍 ${p.entrega}</p>
+                </div>
+                <hr style="border: 0 !important; border-top: 2px solid #eee !important; margin:10px 0 !important;">
+                <div style="flex-grow: 1 !important;">
+                    ${listaHTML}
+                </div>
                 
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+                ${p.observaciones ? `<div style="background:#fff176 !important; margin: 15px 0 !important; padding: 15px !important; border-radius: 12px !important; border-left: 8px solid #ffd600 !important; color: #000 !important; font-weight: bold !important; font-size: 1em !important;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 
-                <hr>
-                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
+                <hr style="border: 0 !important; border-top: 2px solid #eee !important; margin:15px 0 !important;">
+                <div style="margin-bottom:15px !important;">
+                    <p style="margin:4px 0 !important; font-size:1.1em !important;">💳 ${p.metodoPago}</p>
+                    <p style="margin:4px 0 !important; font-size:1.4em !important;"><b>💰 Total: ${p.totalStr}</b></p>
+                </div>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="width:100% !important; padding: 22px !important; background:#4CAF50 !important; color:white !important; border:none !important; border-radius:40px !important; font-weight:bold !important; cursor:pointer !important; font-size: 1.3em !important;">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
-            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
+            aviso.style = "grid-column:1/span 2 !important; text-align:center !important; color:#ff8c00 !important; font-weight:bold !important; background:#fff3e0 !important; padding:15px !important; border-radius:15px !important; margin-top:15px !important; font-size: 1.2em !important;";
+            aviso.innerHTML = `...Hay ${ids.length - 2} pedido(s) más en cola ⚠️`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
+        contenedor.innerHTML = "<div style='grid-column:1/span 2 !important; text-align:center !important; padding:80px !important; color:#aaa !important;'><h3>✅ ¡Sin pedidos pendientes!</h3></div>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
-// 6. FUNCIÓN PARA FINALIZAR PEDIDO
+// 7. FINALIZAR PEDIDO (DISEÑO VIEJO + ESTADÍSTICAS)
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
-    // 1. Mover al historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // 2. Actualizar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
                 runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
             }
         }
-
-        // 3. Monto de Delivery si corresponde
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -145,20 +172,16 @@ window.terminarPedido = (id) => {
                 runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
             }
         }
-        
-        // 4. Quitar de activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
-
 };
 
-// CONTRATAR AL EMPLEADO (Service Worker)
+// 8. SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker del Vendedor listo', reg))
-            .catch(err => console.log('Error al contratar SW', err));
+            .then(reg => console.log('SW Cocina Online'))
+            .catch(err => console.log('Error SW', err));
     });
 }
-
