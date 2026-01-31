@@ -23,29 +23,26 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// 4. CAPA DE ACTIVACIÓN (DISEÑO EXACTO DE TU FOTO)
+// 4. CAPA DE ACTIVACIÓN (CORREGIDA PARA QUE SE VEA GRANDE)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
-    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px; margin-top: 20px;">PEDIDOS - POWER</h1>
-        <p style="color: #555; margin-bottom: 20px;">Toca para activar el sistema de cocina</p>
-        <div style="font-size: 4em;">🔔</div>
+    <div style="border: 3px solid #ff8c00; padding: 50px 30px; border-radius: 25px; width: 85%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <img src="LogoPow.png" alt="Logo" style="width: 150px; margin-bottom: 20px;">
+        <h1 style="color: #ff8c00; font-size: 28px; margin: 10px 0;">PEDIDOS - POWER</h1>
+        <p style="font-size: 1.1em; color: #444;">Toca para activar el sistema de cocina</p>
+        <div style="font-size: 4em; margin-top: 20px;">🔔</div>
     </div>`;
 document.body.appendChild(capa);
 
 capa.onclick = () => {
-    // Sonido normal (una vez), sin loop infinito
     if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
     if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
-    
-    // Solicitar permiso de notificaciones para el celular
     if ("Notification" in window) { Notification.requestPermission(); }
     capa.remove();
 };
 
-// 5. NOTIFICACIÓN EXTERNA (Usa postMessage para mayor confiabilidad)
+// 5. NOTIFICACIÓN EXTERNA
 function lanzarNotificacionExterna(nombre) {
     if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
@@ -55,7 +52,7 @@ function lanzarNotificacionExterna(nombre) {
     }
 }
 
-// 6. RENDERIZADO DE PEDIDOS (DISEÑO FIEL A TUS CAPTURAS)
+// 6. RENDERIZADO DE PEDIDOS (CON TAMAÑOS REALES Y DISEÑO FIEL)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -70,7 +67,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Alerta si hay pedido nuevo
         if (!primeraCarga && ids.length > conteoAnterior) {
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -81,7 +77,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
-        // Lógica de productos repetidos
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
@@ -97,7 +92,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
                     const esRepetido = repetidos.includes(key);
-                    // DISEÑO DE RESALTADO AMARILLO (DE TU FOTO)
                     const estiloLi = `padding:8px; margin: 4px 0; border-radius:8px; ${esRepetido ? 'background:#fff8e1; border-left:6px solid #ff8c00; font-weight:bold; color:#000;' : 'color:#333;'}`;
                     listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
                 }
@@ -108,32 +102,36 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             
-            // Replicando el diseño de cabecera y cuerpo de tus fotos
+            // ESTILOS FORZADOS PARA EL DISEÑO GRANDE
+            tarjeta.style.padding = "20px";
+            tarjeta.style.borderRadius = "20px";
+            tarjeta.style.backgroundColor = "white";
+            tarjeta.style.boxShadow = "0 4px 10px rgba(0,0,0,0.05)";
+
             tarjeta.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px;">
-                    <span style="color:#ff8c00; font-size:1.1em;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size: 1.2em; margin-bottom:10px;">
+                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
                     <span style="color:#555;">🕒 ${p.hora || ''}</span>
                 </div>
-                <div style="margin-bottom:12px;">
+                <div style="margin: 15px 0; font-size: 1.1em;">
                     <p style="margin:2px 0;"><b>👤 ${p.cliente}</b></p>
                     <p style="margin:2px 0; color:#666;">📍 ${p.entrega}</p>
                 </div>
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <hr style="border: 0; border-top: 1px solid #eee; margin:10px 0;">
                 ${listaHTML}
                 
-                ${p.observaciones ? `<div style="background:#fff176; margin: 12px 0; padding: 10px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+                ${p.observaciones ? `<div style="background:#fff176; margin: 15px 0; padding: 12px; border-radius: 10px; border-left: 6px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <hr style="border: 0; border-top: 1px solid #eee; margin:10px 0;">
                 <div style="margin-bottom:15px;">
                     <p style="margin:2px 0; font-size:0.95em;">💳 ${p.metodoPago}</p>
-                    <p style="margin:2px 0; font-size:1.1em;"><b>💰 Total: ${p.totalStr}</b></p>
+                    <p style="margin:2px 0; font-size:1.2em;"><b>💰 Total: ${p.totalStr}</b></p>
                 </div>
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="width:100%; padding:15px; background:#4CAF50; color:white; border:none; border-radius:25px; font-weight:bold; cursor:pointer; font-size:1.1em;">LISTO ✅</button>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="width:100%; padding: 18px; background:#4CAF50; color:white; border:none; border-radius:30px; font-weight:bold; cursor:pointer; font-size: 1.1em;">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
-        // Banner de pedidos en espera (Diseño de la foto 2)
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:12px; border-radius:15px; margin-top:10px;";
@@ -147,24 +145,20 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-// 7. FINALIZAR PEDIDO (DISEÑO VIEJO + ESTADÍSTICAS)
+// 7. FINALIZAR PEDIDO
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
-
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // Guardar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
                 runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
             }
         }
-        // Delivery
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
