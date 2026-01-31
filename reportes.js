@@ -83,44 +83,63 @@ window.cargarDashboard = async () => {
         const fI = new Date(inicio + "T00:00:00");
         const fF = new Date(fin + "T23:59:59");
 
-        for(let id in dataOriginal){
+       for(let id in dataOriginal){
             const p = dataOriginal[id];
             if(!p.fecha_final) continue;
             const [d, m, a] = p.fecha_final.split('-');
             const fP = new Date(a, m-1, d);
 
             if(fP >= fI && fP <= fF){
-                let calcProductos = 0;
+                // 1. OBTENER MONTOS
+                let montoTotalTicket = (limpiarMonto(p.totalNum || p.totalStr));
+                let montoEnvioPropio = (p.entrega === "Delivery") ? limpiarMonto(p.monto_delivery) : 0;
+                
+                // La "Venta Neta" de comida es el total menos el flete
+                let ventaComida = montoTotalTicket - montoEnvioPropio;
+
+                // 2. CLASIFICAR SEGÚN TU LÓGICA (Separación Total)
+                const metodo = (p.metodoPago || "").toLowerCase();
+                const clienteNom = (p.cliente || "").toLowerCase();
+
+                // A - ES PEDIDO YA (Plataforma externa)
+                if(clienteNom.includes("pedido ya") || clienteNom.includes("pedidosya") || clienteNom.includes("py") || metodo.includes("pedidosya")) {
+                    dataGlobal.totalPY += ventaComida; 
+                    dataGlobal.pedidosYa.push({ 
+                        hora: p.hora, 
+                        ref: p.cliente, 
+                        total: ventaComida 
+                    });
+                } 
+                // B - ES VENTA PROPIA (Efectivo o Transferencia)
+                else {
+                    if(metodo.includes("efectivo") || metodo === "ef") {
+                        dataGlobal.efe += ventaComida;
+                    } else if(metodo.includes("transferencia") || metodo === "tr") {
+                        dataGlobal.tra += ventaComida;
+                    }
+                }
+
+                // C - CAJÓN APARTE: DELIVERY (Flete puro)
+                if(p.entrega === "Delivery" && montoEnvioPropio > 0) {
+                    dataGlobal.totalDeliv += montoEnvioPropio;
+                    dataGlobal.delivery.push({ 
+                        fecha: p.fecha_final, 
+                        cliente: p.cliente, 
+                        monto: montoEnvioPropio 
+                    });
+                }
+
+                // 3. ESTADÍSTICAS GENERALES
+                dataGlobal.total += montoTotalTicket;
+                dataGlobal.pedidos.push({...p, idFB: id, totalCorregido: montoTotalTicket});
+                
+                // Conteo de productos para el ranking
                 for(let k in p.productos){
                     let cant = parseInt(p.productos[k]);
                     if(cant > 0) {
                         let nom = k.replace('qty_','').replace(/_/g,' ').toUpperCase();
-                        calcProductos += (obtenerPrecio(nom) * cant);
                         dataGlobal.productos[nom] = (dataGlobal.productos[nom] || 0) + cant;
                     }
-                }
-                
-                let mDeli = limpiarMonto(p.monto_delivery);
-                let montoFinal = (limpiarMonto(p.totalNum || p.totalStr) === 0) ? (calcProductos + mDeli) : limpiarMonto(p.totalNum || p.totalStr);
-                
-                // Guardamos el ID de Firebase dentro del objeto para usarlo en botones
-                dataGlobal.pedidos.push({...p, idFB: id, totalCorregido: montoFinal});
-                dataGlobal.total += montoFinal;
-
-                const metodo = (p.metodoPago || "").toLowerCase();
-                const clienteNom = (p.cliente || "").toLowerCase();
-
-                if(clienteNom.includes("pedido ya") || clienteNom.includes("pedidosya") || clienteNom.includes("py") || metodo.includes("pedidosya")) {
-                    dataGlobal.totalPY += montoFinal;
-                    dataGlobal.pedidosYa.push({ hora: p.hora, ref: p.cliente, total: montoFinal });
-                } else {
-                    if(metodo.includes("efectivo") || metodo === "ef") dataGlobal.efe += montoFinal;
-                    else if(metodo.includes("transferencia") || metodo === "tr") dataGlobal.tra += montoFinal;
-                }
-
-                if(p.entrega === "Delivery") {
-                    dataGlobal.totalDeliv += mDeli;
-                    dataGlobal.delivery.push({ fecha: p.fecha_final, cliente: p.cliente, monto: mDeli });
                 }
 
                 let cli = (p.cliente || "ANÓNIMO").trim().toUpperCase();
@@ -285,3 +304,4 @@ function renderCharts() {
         });
     }
 }
+
