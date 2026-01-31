@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+
 // 2. CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -13,8 +14,10 @@ const firebaseConfig = {
     appId: "1:269752304723:web:ab7ccac47a7859ce0672a6"
 };
 
+
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+
 
 // 3. VARIABLES DE CONTROL
 const sonidoNuevo = document.getElementById('notificacion');
@@ -23,148 +26,133 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// 4. CAPA DE ACTIVACIÓN (DISEÑO EXACTO DE TU FOTO)
+
+// 4. CAPA DE ACTIVACIÓN (Para habilitar sonido en navegadores)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
-    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
         <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px; margin-top: 20px;">PEDIDOS - POWER</h1>
-        <p style="color: #555; margin-bottom: 20px;">Toca para activar el sistema de cocina</p>
-        <div style="font-size: 4em;">🔔</div>
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
+        <span style="font-size: 3em;">🔔</span>
     </div>`;
 document.body.appendChild(capa);
 
+
 capa.onclick = () => {
-    // Sonido normal (una vez), sin loop infinito
     if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
     if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
-    
-    // Solicitar permiso de notificaciones para el celular
-    if ("Notification" in window) { Notification.requestPermission(); }
     capa.remove();
 };
 
-// 5. NOTIFICACIÓN EXTERNA (Usa postMessage para mayor confiabilidad)
-function lanzarNotificacionExterna(nombre) {
-    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'NUEVO_PEDIDO',
-            cliente: nombre || "Nuevo"
-        });
-    }
-}
 
-// 6. RENDERIZADO DE PEDIDOS (DISEÑO FIEL A TUS CAPTURAS)
+// 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
-    
-    contenedor.innerHTML = ""; 
+   
+    contenedor.innerHTML = ""; // Limpiar pantalla
     contenedor.style.display = "grid";
     contenedor.style.gridTemplateColumns = "1fr 1fr";
     contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; 
+    contenedor.style.direction = "rtl"; // Pedido nuevo a la derecha
+
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
-        
-        // Alerta si hay pedido nuevo
+       
+        // Alerta sonora si hay un pedido nuevo
         if (!primeraCarga && ids.length > conteoAnterior) {
-            if(sonidoNuevo) {
-                sonidoNuevo.currentTime = 0;
-                sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
-            }
-            const ultimoId = ids[ids.length - 1];
-            lanzarNotificacionExterna(pedidos[ultimoId].cliente);
+            if(sonidoNuevo) sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
         }
         conteoAnterior = ids.length;
 
-        // Lógica de productos repetidos
+
+        // Detectar productos repetidos para resaltar
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
+
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Solo mostrar los 2 primeros
+
 
             const p = pedidos[id];
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
-            
+           
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
                     const esRepetido = repetidos.includes(key);
-                    // DISEÑO DE RESALTADO AMARILLO (DE TU FOTO)
-                    const estiloLi = `padding:8px; margin: 4px 0; border-radius:8px; ${esRepetido ? 'background:#fff8e1; border-left:6px solid #ff8c00; font-weight:bold; color:#000;' : 'color:#333;'}`;
-                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00; font-weight:bold;">${cant}</span> x ${nombre}</li>`;
+                    const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
+                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
                 }
             }
             listaHTML += "</ul>";
 
+
             const tarjeta = document.createElement('div');
             tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
-            
-            // Replicando el diseño de cabecera y cuerpo de tus fotos
             tarjeta.innerHTML = `
-                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px;">
-                    <span style="color:#ff8c00; font-size:1.1em;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
-                    <span style="color:#555;">🕒 ${p.hora || ''}</span>
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                    <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
+                    <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <div style="margin-bottom:12px;">
-                    <p style="margin:2px 0;"><b>👤 ${p.cliente}</b></p>
-                    <p style="margin:2px 0; color:#666;">📍 ${p.entrega}</p>
-                </div>
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
+                <hr>
                 ${listaHTML}
-                
-                ${p.observaciones ? `<div style="background:#fff176; margin: 12px 0; padding: 10px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
-                
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-                <div style="margin-bottom:15px;">
-                    <p style="margin:2px 0; font-size:0.95em;">💳 ${p.metodoPago}</p>
-                    <p style="margin:2px 0; font-size:1.1em;"><b>💰 Total: ${p.totalStr}</b></p>
-                </div>
-                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="width:100%; padding:15px; background:#4CAF50; color:white; border:none; border-radius:25px; font-weight:bold; cursor:pointer; font-size:1.1em;">LISTO ✅</button>
+               
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+               
+                <hr>
+                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
+                <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
 
-        // Banner de pedidos en espera (Diseño de la foto 2)
+
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:12px; border-radius:15px; margin-top:10px;";
-            aviso.innerHTML = `...Hay ${ids.length - 2} pedido(s) más en cola ⚠️`;
+            aviso.style = "grid-column:1/span 2; text-align:center; color:#ff8c00; font-weight:bold; background:#fff3e0; padding:10px; border-radius:10px;";
+            aviso.innerHTML = `⚠️ Hay ${ids.length - 2} pedido(s) más en cola...`;
             contenedor.appendChild(aviso);
         }
     } else {
-        contenedor.innerHTML = "<div style='grid-column:1/span 2; text-align:center; padding:50px; color:#aaa;'><h3>✅ ¡Sin pedidos pendientes!</h3></div>";
+        contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa;'>✅ ¡Sin pedidos pendientes!</p>";
         conteoAnterior = 0;
     }
     primeraCarga = false;
 });
 
-// 7. FINALIZAR PEDIDO (DISEÑO VIEJO + ESTADÍSTICAS)
+
+// 6. FUNCIÓN PARA FINALIZAR PEDIDO
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
 
+
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
+   
+    // 1. Mover al historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // Guardar estadísticas de productos
+        // 2. Actualizar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
                 runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
             }
         }
-        // Delivery
+
+
+        // 3. Monto de Delivery si corresponde
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -172,16 +160,10 @@ window.terminarPedido = (id) => {
                 runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
             }
         }
+       
+        // 4. Quitar de activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-// 8. SERVICE WORKER
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW Cocina Online'))
-            .catch(err => console.log('Error SW', err));
-    });
-}
