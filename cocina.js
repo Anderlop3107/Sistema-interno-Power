@@ -47,21 +47,6 @@ capa.onclick = () => {
 };
 
 
-// Función para lanzar la alerta al celular
-function lanzarNotificacionExterna(nombre) {
-    if (Notification.permission === "granted") {
-        new Notification("🍔 ¡NUEVO PEDIDO!", {
-            body: `Preparar pedido de: ${nombre}`,
-            icon: "LogoPow.png",
-            vibrate: [300, 100, 300]
-        });
-    } else {
-        // Si no tenemos permiso todavía, lo pedimos
-        Notification.requestPermission();
-    }
-}
-
-
 // 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
@@ -80,16 +65,8 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
        
         // Alerta sonora si hay un pedido nuevo
         if (!primeraCarga && ids.length > conteoAnterior) {
-    if(sonidoNuevo) {
-        sonidoNuevo.currentTime = 0;
-        sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
-    }
-   
-    // Sacamos el nombre del último pedido para la notificación
-    const ultimoId = ids[ids.length - 1];
-    const nombreCliente = pedidos[ultimoId].cliente;
-    lanzarNotificacionExterna(nombreCliente);
-}
+            if(sonidoNuevo) sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
+        }
         conteoAnterior = ids.length;
 
 
@@ -190,12 +167,3 @@ window.terminarPedido = (id) => {
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-
-// CONTRATAR AL EMPLEADO (Service Worker)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker del Vendedor listo', reg))
-            .catch(err => console.log('Error al contratar SW', err));
-    });
-}
