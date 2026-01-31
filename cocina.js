@@ -23,48 +23,42 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// 4. CAPA DE ACTIVACIÓN MEJORADA
+// 4. CAPA DE ACTIVACIÓN (Con solicitud de permisos nueva)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
     <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
         <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px;">SISTEMA COCINA - POWER</h1>
-        <p>Toca para activar sonidos y notificaciones</p>
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
         <span style="font-size: 3em;">🔔</span>
     </div>`;
 document.body.appendChild(capa);
 
 capa.onclick = () => {
-    // Activar audios
-    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }); }
-    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); }); }
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
     
-    // SOLICITUD EXPLÍCITA DE PERMISOS (Mejora solicitada)
+    // SOLICITUD DE PERMISOS (Del código nuevo)
     if ("Notification" in window) {
-        Notification.requestPermission().then(permission => {
-            console.log("Permiso de notificación:", permission);
-        });
+        Notification.requestPermission();
     }
     
     capa.remove();
 };
 
-// 5. FUNCIÓN DE NOTIFICACIÓN VÍA SERVICE WORKER (Mejora solicitada)
+// NUEVA FUNCIÓN DE NOTIFICACIÓN (vía postMessage)
 function lanzarNotificacionSW(nombreCliente) {
     if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-        // Enviamos el mensaje al sw.js para que él maneje la alerta
+        // Se envía al Service Worker para que gestione la alerta en segundo plano
         navigator.serviceWorker.controller.postMessage({
             type: 'NUEVO_PEDIDO',
             cliente: nombreCliente
         });
-    } else {
-        // Fallback: Si el SW no responde, intentar notificación normal
-        new Notification("🍔 ¡NUEVO PEDIDO!", { body: `Cliente: ${nombreCliente}`, icon: "LogoPow.png" });
     }
 }
 
-// 6. ESCUCHAR PEDIDOS EN TIEMPO REAL
+// 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -73,6 +67,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     contenedor.innerHTML = ""; 
     contenedor.style.display = "grid";
     contenedor.style.gridTemplateColumns = "1fr 1fr";
+    contenedor.style.gap = "15px";
     contenedor.style.direction = "rtl"; 
 
     if (pedidos) {
@@ -83,14 +78,15 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 sonidoNuevo.currentTime = 0;
                 sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
             }
-            
-            // Usar la nueva función vía Service Worker
+   
             const ultimoId = ids[ids.length - 1];
-            lanzarNotificacionSW(pedidos[ultimoId].cliente || "Nuevo");
+            const nombreCliente = pedidos[ultimoId].cliente;
+            
+            // LLAMADA A LA NUEVA NOTIFICACIÓN MEJORADA
+            lanzarNotificacionSW(nombreCliente);
         }
         conteoAnterior = ids.length;
 
-        // Lógica de productos repetidos
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
@@ -123,7 +119,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
                 <hr>
                 <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
@@ -144,7 +140,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-// 7. FUNCIÓN PARA FINALIZAR PEDIDO (Mantiene tus estadísticas originales)
+// 6. FUNCIÓN PARA FINALIZAR PEDIDO (MANTENIENDO ESTADÍSTICAS)
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
@@ -154,7 +150,6 @@ window.terminarPedido = (id) => {
    
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // Actualizar estadísticas de productos
         for (let prod in p.productos) {
             if (p.productos[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
@@ -162,7 +157,6 @@ window.terminarPedido = (id) => {
             }
         }
 
-        // Monto de Delivery
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -176,11 +170,11 @@ window.terminarPedido = (id) => {
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-// 8. REGISTRO DE SERVICE WORKER
+// CONTRATAR AL EMPLEADO (Service Worker)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker de Cocina activo', reg))
-            .catch(err => console.log('Error SW:', err));
+            .then(reg => console.log('Service Worker del Vendedor listo', reg))
+            .catch(err => console.log('Error al contratar SW', err));
     });
 }
