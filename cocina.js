@@ -47,18 +47,24 @@ capa.onclick = () => {
     capa.remove();
 };
 
-// Función para lanzar la alerta al celular
-function lanzarNotificacionExterna(nombre) {
-    if (Notification.permission === "granted") {
-        new Notification("🍔 ¡NUEVO PEDIDO!", {
-            body: `Preparar pedido de: ${nombre}`,
-            icon: "LogoPow.png",
-            vibrate: [300, 100, 300]
+// NUEVA FUNCIÓN DE NOTIFICACIÓN (vía postMessage)
+
+function lanzarNotificacionSW(nombreCliente) {
+
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+
+        // Se envía al Service Worker para que gestione la alerta en segundo plano
+
+        navigator.serviceWorker.controller.postMessage({
+
+            type: 'NUEVO_PEDIDO',
+
+            cliente: nombreCliente
+
         });
-    } else {
-        // Si no tenemos permiso todavía, lo pedimos
-        Notification.requestPermission();
+
     }
+
 }
 
 
@@ -182,4 +188,5 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('Error al contratar SW', err));
     });
 }
+
 
