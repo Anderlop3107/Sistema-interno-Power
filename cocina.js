@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+
 // 2. CONFIGURACIÓN DE FIREBASE
 const firebaseConfig = {
     apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
@@ -13,8 +14,10 @@ const firebaseConfig = {
     appId: "1:269752304723:web:ab7ccac47a7859ce0672a6"
 };
 
+
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+
 
 // 3. VARIABLES DE CONTROL
 const sonidoNuevo = document.getElementById('notificacion');
@@ -23,24 +26,8 @@ let primeraCarga = true;
 let pedidosLocales = {};
 let conteoAnterior = 0;
 
-// --- LÓGICA DE CONTROL DE ALARMA INTELIGENTE (DEL NUEVO) ---
-function detenerAlarmaAlVer() {
-    if (!document.hidden && sonidoNuevo) {
-        sonidoNuevo.pause();
-        sonidoNuevo.currentTime = 0;
-    }
-}
 
-document.addEventListener("visibilitychange", detenerAlarmaAlVer);
-window.addEventListener("focus", detenerAlarmaAlVer);
-document.addEventListener("click", () => {
-    if (sonidoNuevo) {
-        sonidoNuevo.pause();
-        sonidoNuevo.currentTime = 0;
-    }
-}, { once: false });
-
-// 4. CAPA DE ACTIVACIÓN
+// 4. CAPA DE ACTIVACIÓN (Para habilitar sonido en navegadores)
 const capa = document.createElement('div');
 capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
 capa.innerHTML = `
@@ -52,77 +39,87 @@ capa.innerHTML = `
     </div>`;
 document.body.appendChild(capa);
 
+
 capa.onclick = () => {
-    if(sonidoNuevo) { 
-        sonidoNuevo.loop = true; // Alarma infinita activada
-        sonidoNuevo.play().then(() => { sonidoNuevo.pause(); }).catch(()=>{}); 
-    }
-    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); }).catch(()=>{}); }
-    
-    if ("Notification" in window) { Notification.requestPermission(); }
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
     capa.remove();
 };
 
-// 5. NOTIFICACIONES VISUALES
-function lanzarNotificacionVisual(nombreCliente) {
-    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'NUEVO_PEDIDO',
-            cliente: nombreCliente
+
+// Función para lanzar la alerta al celular
+function lanzarNotificacionExterna(nombre) {
+    if (Notification.permission === "granted") {
+        new Notification("🍔 ¡NUEVO PEDIDO!", {
+            body: `Preparar pedido de: ${nombre}`,
+            icon: "LogoPow.png",
+            vibrate: [300, 100, 300]
         });
+    } else {
+        // Si no tenemos permiso todavía, lo pedimos
+        Notification.requestPermission();
     }
 }
 
-// 6. ESCUCHAR PEDIDOS (INTERFAZ DEL VIEJO)
+
+// 5. ESCUCHAR PEDIDOS EN TIEMPO REAL
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
-    
-    contenedor.innerHTML = ""; 
+   
+    contenedor.innerHTML = ""; // Limpiar pantalla
     contenedor.style.display = "grid";
-    contenedor.style.gridTemplateColumns = "1fr 1fr"; // Dos columnas
+    contenedor.style.gridTemplateColumns = "1fr 1fr";
     contenedor.style.gap = "15px";
-    contenedor.style.direction = "rtl"; // Orden de derecha a izquierda
+    contenedor.style.direction = "rtl"; // Pedido nuevo a la derecha
+
 
     if (pedidos) {
         const ids = Object.keys(pedidos);
-        
-        // Disparar Alarma si hay pedidos nuevos
-        if (!primeraCarga && ids.length > conteoAnterior) { 
-            if(sonidoNuevo) {
-                sonidoNuevo.currentTime = 0;
-                sonidoNuevo.play().catch(e => console.log("Error sonido:", e)); 
-            }
-            const ultimoId = ids[ids.length - 1];
-            lanzarNotificacionVisual(pedidos[ultimoId].cliente || "Nuevo");
-        }
+       
+        // Alerta sonora si hay un pedido nuevo
+        if (!primeraCarga && ids.length > conteoAnterior) {
+    if(sonidoNuevo) {
+        sonidoNuevo.currentTime = 0;
+        sonidoNuevo.play().catch(e => console.log("Error sonido:", e));
+    }
+   
+    // Sacamos el nombre del último pedido para la notificación
+    const ultimoId = ids[ids.length - 1];
+    const nombreCliente = pedidos[ultimoId].cliente;
+    lanzarNotificacionExterna(nombreCliente);
+}
         conteoAnterior = ids.length;
 
-        // Lógica de comparación para resaltar productos repetidos (Del Viejo)
+
+        // Detectar productos repetidos para resaltar
         const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
         const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
         const repetidos = prodP1.filter(item => prodP2.includes(item));
 
+
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo muestra los 2 primeros
+            if (index > 1) return; // Solo mostrar los 2 primeros
+
+
             const p = pedidos[id];
-            
             let listaHTML = "<ul style='padding:0; list-style:none;'>";
+           
             for (let key in p.productos) {
                 const cant = p.productos[key];
                 if (cant > 0) {
                     const nombre = key.replace("qty_", "").toUpperCase();
                     const esRepetido = repetidos.includes(key);
-                    // Estilo amarillo si el producto se repite en el pedido de al lado
                     const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
                     listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
                 }
             }
             listaHTML += "</ul>";
 
+
             const tarjeta = document.createElement('div');
-            tarjeta.style.direction = "ltr"; // Contenido interno de izquierda a derecha
+            tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
@@ -132,13 +129,16 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
-                ${p.observaciones ? `<div class="coincidencia">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+               
+                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+               
                 <hr>
                 <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
         });
+
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
@@ -153,34 +153,49 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-// 7. FINALIZAR PEDIDO (MEZCLADO)
-window.terminarPedido = (id) => {
-    // Detener alarma si está sonando
-    if(sonidoNuevo) { 
-        sonidoNuevo.pause(); 
-        sonidoNuevo.currentTime = 0; 
-    }
-    if(sonidoListo) { 
-        sonidoListo.currentTime = 0; 
-        sonidoListo.play().catch(e => console.log(e)); 
-    }
 
+// 6. FUNCIÓN PARA FINALIZAR PEDIDO
+window.terminarPedido = (id) => {
+    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
     if (!p) return;
+
+
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
-    // Guardar en historial
+   
+    // 1. Mover al historial
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        // Eliminar de pedidos activos
+        // 2. Actualizar estadísticas de productos
+        for (let prod in p.productos) {
+            if (p.productos[prod] > 0) {
+                const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
+                runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
+            }
+        }
+
+
+        // 3. Monto de Delivery si corresponde
+        if (p.entrega === "Delivery") {
+            const montoDeliv = parseInt(p.monto_delivery) || 0;
+            if (montoDeliv > 0) {
+                const delivRef = ref(database, `estadisticas/diario/${hoy}/total_delivery`);
+                runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
+            }
+        }
+       
+        // 4. Quitar de activos
         remove(ref(database, 'pedidos/' + id));
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
 
-// 8. SERVICE WORKER
+
+// CONTRATAR AL EMPLEADO (Service Worker)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Cocina OK'));
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker del Vendedor listo', reg))
+            .catch(err => console.log('Error al contratar SW', err));
     });
 }
