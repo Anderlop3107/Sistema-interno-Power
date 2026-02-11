@@ -22,13 +22,13 @@ const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sf
 sonidoNotificacion.volume = 1.0;
 
 const precios = {
-    qty_power: 12000,
-    qty_esp_pollo: 10000,
-    qty_carne: 8000,
-    qty_mixto: 7000,
-    qty_pollo: 5000,
+    qty_power: 14000,
+    qty_esp_pollo: 12000,
+    qty_carne: 10000,
+    qty_mixto: 9000,
+    qty_pollo: 8000,
     qty_lomito: 25000,
-    qty_combo: 18000,
+    qty_combo: 20000,
     qty_papita: 10000,
     qty_gas1l: 10000,
     qty_gas250: 4000,
@@ -189,3 +189,4 @@ if ('serviceWorker' in navigator) {
 if ('Notification' in window) {
     Notification.requestPermission();
 }
+
