@@ -15,10 +15,10 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 const PRECIOS = {
-    "POWER": 12000, "ESPECIAL": 10000, "CARNE": 8000, "MIXTO": 7000, "POLLO": 5000,
-    "LOMITO ARABE": 25000, "COMBO": 18000, "COMBO POWER": 18000, "PAPITAS": 10000,
+    "POWER": 14000, "ESPECIAL": 12000, "CARNE": 10000, "MIXTO": 9000, "POLLO": 8000,
+    "LOMITO ARABE": 25000, "COMBO": 20000, "COMBO POWER": 20000, "PAPITAS": 10000,
     "GAS1L": 10000, "GASEOSA DE 1L": 10000, "GAS250": 4000, "GASEOSA DE 250": 4000,
-    "SALSA": 1000, "ESP POLLO": 10000
+    "SALSA": 1000, "ESP POLLO": 12000
 };
 
 let chartProds, chartFinas;
@@ -304,4 +304,5 @@ function renderCharts() {
         });
     }
 }
+
 
