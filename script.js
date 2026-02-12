@@ -28,12 +28,13 @@ const precios = {
     qty_carne: 10000,
     qty_mixto: 9000,
     qty_pollo: 8000,
+    qty_combo_churra: 20000, // <-- Precio solicitado: Gs 20.000
     // Lomitos Árabes (NUEVOS)
     qty_lomito_carne: 27000,
     qty_lomito_mixto: 27000,
     qty_lomito_triple: 33000,
     qty_lomito_especial_Power: 40000,
-    qty_combo_power_nuevo: 37000,
+    qty_combo_power_nuevo: 37000,  // <-- Precio solicitado: Gs 37.000
     // Complementos
     qty_papita: 10000,
     qty_gas1l: 10000,
