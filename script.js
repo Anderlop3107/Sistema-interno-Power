@@ -22,24 +22,40 @@ const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sf
 sonidoNotificacion.volume = 1.0;
 
 const precios = {
-    // Churrasquitos
     qty_power: 14000,
     qty_esp_pollo: 12000,
     qty_carne: 10000,
     qty_mixto: 9000,
     qty_pollo: 8000,
-    qty_combo_churra: 20000, // <-- Precio solicitado: Gs 20.000
-    // Lomitos Árabes (NUEVOS)
+    qty_combo_churra: 20000,
     qty_lomito_carne: 27000,
     qty_lomito_mixto: 27000,
     qty_lomito_triple: 33000,
-    qty_lomito_especial_Power: 40000,
-    qty_combo_power_nuevo: 37000,  // <-- Precio solicitado: Gs 37.000
-    // Complementos
+    qty_lomito_especial_power: 40000,
+    qty_combo_power_nuevo: 37000,
     qty_papita: 10000,
     qty_gas1l: 10000,
     qty_gas250: 4000,
     qty_salsa: 1000
+};
+
+// Diccionario para que el cocinero lea nombres reales, no IDs
+const nombresProductos = {
+    qty_power: "Churra Power",
+    qty_esp_pollo: "Churra Especial Pollo",
+    qty_carne: "Churra Carne",
+    qty_mixto: "Churra Mixto",
+    qty_pollo: "Churra Pollo",
+    qty_combo_churra: "Combo Power Churra",
+    qty_lomito_carne: "Lomito Carne",
+    qty_lomito_mixto: "Lomito Mixto",
+    qty_lomito_triple: "Lomito 3 Quesos",
+    qty_lomito_especial_Power: "Lomito Especial Power",
+    qty_combo_power_nuevo: "Combo Power Lomito",
+    qty_papita: "Porción Papas",
+    qty_gas1l: "Gaseosa 1L",
+    qty_gas250: "Gaseosa 250ml",
+    qty_salsa: "Salsa Extra"
 };
 
 window.mostrarGrupo = (grupoId) => {
@@ -162,29 +178,38 @@ window.enviarAlCocinero = () => {
     if (!nombre) { alert("Escriba el nombre del cliente"); return; }
 
     const obs = document.getElementById('observaciones').value.trim();
+    const metodoEntrega = document.querySelector('input[name="entrega"]:checked')?.value || "No especificado";
+    const metodoPago = document.querySelector('input[name="pago"]:checked')?.value || "No especificado";
 
     const pedido = {
         cliente: nombre,
-        productos: {},
+        productos: [], // Cambiamos a Array para que sea más fácil de leer en cocina
         observaciones: obs,
-        entrega: document.querySelector('input[name="entrega"]:checked').value,
+        entrega: metodoEntrega,
         monto_delivery: parseInt(document.getElementById('monto_delivery').value) || 0,
-        metodoPago: document.querySelector('input[name="pago"]:checked').value,
+        metodoPago: metodoPago,
         totalNum: calcular(),
-        totalStr: document.getElementById('total_pantalla').innerText,
         hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         fecha_final: new Date().toLocaleDateString('es-PY').replace(/\//g, '-')
     };
 
+    // Llenar la lista de productos con nombres reales y precios
     for (let id in precios) {
         const input = document.getElementById(id);
         if (input) {
             const cant = parseInt(input.value) || 0;
-            if (cant > 0) pedido.productos[id] = cant;
+            if (cant > 0) {
+                pedido.productos.push({
+                    nombre: nombresProductos[id],
+                    cantidad: cant,
+                    precioUnitario: precios[id],
+                    subtotal: cant * precios[id]
+                });
+            }
         }
     }
 
-    if (Object.keys(pedido.productos).length === 0) {
+    if (pedido.productos.length === 0) {
         alert("Agregue al menos un producto");
         return;
     }
