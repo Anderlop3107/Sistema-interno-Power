@@ -204,7 +204,8 @@ p b { color: #444; font-size: 14px; }
 
     gap: 12px;           /* Espacio entre los dos botones */
 
-    margin: 25px 0;      /* MÁS ESPACIO: 25px arriba y abajo para que no esté pegado */
+    /* 25px arriba, 0 lados, 40px abajo para separar de los rellenos */
+    margin: 25px 0 40px 0;
 
     width: 100%;
 
