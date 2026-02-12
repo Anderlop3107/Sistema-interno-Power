@@ -41,16 +41,20 @@ const precios = {
     qty_salsa: 1000
 };
 
-// Nueva función para cambiar entre grupos sin recargar
 window.mostrarGrupo = (grupoId) => {
+    // 1. Ocultar todos los grupos
     document.querySelectorAll('.grupo-productos').forEach(g => g.style.display = 'none');
+    
+    // 2. Mostrar el seleccionado
     document.getElementById(`grupo-${grupoId}`).style.display = 'block';
     
-    // Cambiar estilo de botones
-    document.querySelectorAll('.btn-cat').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    // 3. Cambiar estilo de botones
+    // Primero le quitamos el naranja a todos
+    document.querySelectorAll('.btn-cat').forEach(b => b.classList.add('active'));
+    
+    // Luego se lo ponemos SOLAMENTE al que tocamos
+    event.currentTarget.classList.remove('active');
 };
-
 // 4. MEJORA: NOTIFICACIÓN UNIFICADA (BARRITA + CUADRO VERDE)
 function mostrarNotificacionCompleta(nombreCliente) {
     // 1. SONIDO
