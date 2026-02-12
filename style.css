@@ -205,7 +205,7 @@ p b { color: #444; font-size: 14px; }
     gap: 12px;           /* Espacio entre los dos botones */
 
     /* 25px arriba, 0 lados, 40px abajo para separar de los rellenos */
-    margin: 25px 0 35px 0;
+    margin: 25px 0 25px 0;
 
     width: 100%;
 
@@ -244,4 +244,5 @@ p b { color: #444; font-size: 14px; }
     animation: fadeIn 0.3s ease-out;
 
 }
+
 
