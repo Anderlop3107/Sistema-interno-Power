@@ -21,17 +21,34 @@
             <p><b>Nombre del Cliente:</b></p>
             <input type="text" id="nombre_cliente" placeholder="Escriba el nombre aquí...">
             <hr>
-            <p><b>Churrasquitos y Lomito:</b></p>
-            <div class="grid-inputs">
-                <div>Power: <input type="number" id="qty_power" value="0" min="0" oninput="calcular()"></div>
-                <div>Especial: <input type="number" id="qty_esp_pollo" value="0" min="0" oninput="calcular()"></div>
-                <div>Carne: <input type="number" id="qty_carne" value="0" min="0" oninput="calcular()"></div>
-                <div>Mixto: <input type="number" id="qty_mixto" value="0" min="0" oninput="calcular()"></div>
-                <div>Pollo: <input type="number" id="qty_pollo" value="0" min="0" oninput="calcular()"></div>
-                <div>Lomito: <input type="number" id="qty_lomito" value="0" min="0" oninput="calcular()"></div>
-                <div style="grid-column: span 2;">Combo Power: <input type="number" id="qty_combo" value="0" min="0" oninput="calcular()"></div>
+            
+            <p><b>Seleccione Categoría:</b></p>
+            <div class="categoria-selector">
+                <button type="button" id="btn-churra" onclick="mostrarGrupo('churrasquitos')" class="btn-cat active">Churrasquitos</button>
+                <button type="button" id="btn-lomi" onclick="mostrarGrupo('lomitos')" class="btn-cat">Lomitos</button>
             </div>
-            <button class="btn-navegacion" onclick="cambiarPaso(2)">SIGUIENTE ➔</button>
+
+            <div id="grupo-churrasquitos" class="grupo-productos">
+                <div class="grid-inputs">
+                    <div>Power: <input type="number" id="qty_power" value="0" min="0" oninput="calcular()"></div>
+                    <div>Especial: <input type="number" id="qty_esp_pollo" value="0" min="0" oninput="calcular()"></div>
+                    <div>Carne: <input type="number" id="qty_carne" value="0" min="0" oninput="calcular()"></div>
+                    <div>Mixto: <input type="number" id="qty_mixto" value="0" min="0" oninput="calcular()"></div>
+                    <div>Pollo: <input type="number" id="qty_pollo" value="0" min="0" oninput="calcular()"></div>
+                </div>
+            </div>
+
+            <div id="grupo-lomitos" class="grupo-productos" style="display: none;">
+                <div class="grid-inputs">
+                    <div>Carne: <input type="number" id="qty_lomito_carne" value="0" min="0" oninput="calcular()"></div>
+                    <div>Mixto: <input type="number" id="qty_lomito_mixto" value="0" min="0" oninput="calcular()"></div>
+                    <div>3 Quesos: <input type="number" id="qty_lomito_triple" value="0" min="0" oninput="calcular()"></div>
+                    <div>Especial Power: <input type="number" id="qty_lomito_especial_power" value="0" min="0" oninput="calcular()"></div>
+                    <div style="grid-column: span 2;">Combo Power: <input type="number" id="qty_combo_power_nuevo" value="0" min="0" oninput="calcular()"></div>
+                </div>
+            </div>
+
+            <button onclick="cambiarPaso(2)">SIGUIENTE ➔</button>
         </div>
 
         <div id="paso2" class="paso">
@@ -44,7 +61,7 @@
             </div>
             <div class="fila-botones">
                 <button class="btn-atras" onclick="cambiarPaso(1)">⬅ VOLVER</button>
-                <button class="btn-navegacion" onclick="cambiarPaso(3)">SIGUIENTE ➔</button>
+                <button onclick="cambiarPaso(3)">SIGUIENTE ➔</button>
             </div>
         </div>
 
@@ -55,32 +72,47 @@
                 <label><input type="radio" name="entrega" value="Delivery" id="tipo_delivery" onclick="gestionarDelivery()"> Delivery</label>
             </div>
 
-            <div id="seccion_monto_delivery" style="display: none; margin-top: 10px;">
+            <div id="seccion_monto_delivery" style="display: none;">
                 <p>Monto Delivery:</p>
                 <input type="number" id="monto_delivery" value="0" oninput="calcular()">
             </div>
 
             <p style="margin-top: 15px;"><b>Método de Pago:</b></p>
             <div class="opciones-entrega">
-                <label><input type="radio" name="pago" value="Efectivo" checked> Efectivo</label>
-                <label><input type="radio" name="pago" value="Transferencia"> Transferencia</label>
+                <label><input type="radio" name="pago" value="Efectivo" checked> Efe</label>
+                <label><input type="radio" name="pago" value="Transferencia"> Transf</label>
+                <label><input type="radio" name="pago" value="PedidosYa"> PY</label>
             </div>
 
-            <p style="margin-top: 15px;"><b>Observaciones / Notas:</b></p>
-<textarea id="observaciones" rows="3" placeholder="Ej: Sin verduras..." 
-    style="width: 100%; padding: 10px; border: 1.5px solid #ff8c00; border-radius: 10px; font-family: 'Poppins', sans-serif; box-sizing: border-box; resize: none;">
-</textarea>
+            <p style="margin-top: 15px;"><b>Observaciones:</b></p>
+            <textarea id="observaciones" rows="3" placeholder="Ej: Sin cebolla..." 
+                style="width: 100%; padding: 10px; border: 1.5px solid var(--accent); border-radius: 10px; font-family: inherit; box-sizing: border-box; resize: none;"></textarea>
 
             <div id="total_pantalla">Total: 0 Gs</div>
 
             <div class="fila-botones">
                 <button class="btn-atras" onclick="cambiarPaso(2)">⬅ VOLVER</button>
-                <button onclick="enviarAlCocinero()">ENVIAR PEDIDO</button>
+                <button onclick="enviarAlCocinero()">ENVIAR</button>
             </div>
         </div>
     </div>
 
     <script type="module" src="script.js"></script>
+    <script>
+        window.mostrarGrupo = function(grupoId) {
+            document.getElementById('grupo-churrasquitos').style.display = 'none';
+            document.getElementById('grupo-lomitos').style.display = 'none';
+            document.getElementById('grupo-' + grupoId).style.display = 'block';
+            
+            document.getElementById('btn-churra').classList.remove('active');
+            document.getElementById('btn-lomi').classList.remove('active');
+            
+            if(grupoId === 'churrasquitos') {
+                document.getElementById('btn-churra').classList.add('active');
+            } else {
+                document.getElementById('btn-lomi').classList.add('active');
+            }
+        }
+    </script>
 </body>
 </html>
-
