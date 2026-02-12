@@ -22,17 +22,33 @@ const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sf
 sonidoNotificacion.volume = 1.0;
 
 const precios = {
+    // Churrasquitos
     qty_power: 14000,
     qty_esp_pollo: 12000,
     qty_carne: 10000,
     qty_mixto: 9000,
     qty_pollo: 8000,
-    qty_lomito: 25000,
-    qty_combo: 20000,
+    // Lomitos Árabes (NUEVOS)
+    qty_lomito_carne: 27000,
+    qty_lomito_mixto: 27000,
+    qty_lomito_triple: 33000,
+    qty_lomito_especial_Power: 40000,
+    qty_combo_power_nuevo: 37000,
+    // Complementos
     qty_papita: 10000,
     qty_gas1l: 10000,
     qty_gas250: 4000,
     qty_salsa: 1000
+};
+
+// Nueva función para cambiar entre grupos sin recargar
+window.mostrarGrupo = (grupoId) => {
+    document.querySelectorAll('.grupo-productos').forEach(g => g.style.display = 'none');
+    document.getElementById(`grupo-${grupoId}`).style.display = 'block';
+    
+    // Cambiar estilo de botones
+    document.querySelectorAll('.btn-cat').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
 };
 
 // 4. MEJORA: NOTIFICACIÓN UNIFICADA (BARRITA + CUADRO VERDE)
@@ -189,4 +205,3 @@ if ('serviceWorker' in navigator) {
 if ('Notification' in window) {
     Notification.requestPermission();
 }
-
