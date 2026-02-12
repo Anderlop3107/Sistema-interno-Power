@@ -198,24 +198,17 @@ p b { color: #444; font-size: 14px; }
 
 /* 11. ADICIÓN PARA CATEGORÍAS (Para script de grupos) */
 .categoria-selector {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
+    display: flex;         /* Esto los pone en fila */
+    flex-wrap: nowrap;     /* Evita que se bajen aunque no quepan */
+    gap: 10px;
+    width: 100%;
 }
 
 .btn-cat {
-    flex: 1;
-    padding: 10px;
-    background: #f8f9fa;
-    border: 1.5px solid #eee;
-    border-radius: 10px;
-    color: var(--text-muted);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-    width: auto; /* Anula el width 100% general si fuera necesario */
-    box-shadow: none;
+    flex: 1;               /* Obliga a que ambos midan lo mismo (50% cada uno) */
+    width: auto !important; /* IMPORTANTE: Para que ignore el width 100% de tus otros botones */
+    padding: 10px 5px;
+
 }
 
 .btn-cat.active {
