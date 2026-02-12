@@ -24,29 +24,32 @@
             
             <p><b>Seleccione Categoría:</b></p>
             <div class="categoria-selector">
-                <button type="button" id="btn-churra" onclick="mostrarGrupo('churrasquitos')" class="btn-cat active">Churrasquitos</button>
-                <button type="button" id="btn-lomi" onclick="mostrarGrupo('lomitos')" class="btn-cat">Lomitos</button>
+                <button type="button" id="btn-churra" onclick="mostrarGrupo('churrasquitos')" class="btn-cat">Churrasquitos</button>
+                <button type="button" id="btn-lomi" onclick="mostrarGrupo('lomitos')" class="btn-cat active">Lomitos</button>
             </div>
 
-            <div id="grupo-churrasquitos" class="grupo-productos">
-                <div class="grid-inputs">
-                    <div>Power: <input type="number" id="qty_power" value="0" min="0" oninput="calcular()"></div>
-                    <div>Especial: <input type="number" id="qty_esp_pollo" value="0" min="0" oninput="calcular()"></div>
-                    <div>Carne: <input type="number" id="qty_carne" value="0" min="0" oninput="calcular()"></div>
-                    <div>Mixto: <input type="number" id="qty_mixto" value="0" min="0" oninput="calcular()"></div>
-                    <div>Pollo: <input type="number" id="qty_pollo" value="0" min="0" oninput="calcular()"></div>
-                </div>
-            </div>
+           <div id="grupo-churrasquitos" class="grupo-productos">
+    <div class="grid-inputs">
+        <div>Power: <input type="number" id="qty_power" value="0" min="0" oninput="calcular()"></div>
+        <div>Especial: <input type="number" id="qty_esp_pollo" value="0" min="0" oninput="calcular()"></div>
+        <div>Carne: <input type="number" id="qty_carne" value="0" min="0" oninput="calcular()"></div>
+        <div>Mixto: <input type="number" id="qty_mixto" value="0" min="0" oninput="calcular()"></div>
+        <div>Pollo: <input type="number" id="qty_pollo" value="0" min="0" oninput="calcular()"></div>
+        
+        <div style="grid-column: span 2;">Combo Power: <input type="number" id="qty_combo_churra" value="0" min="0" oninput="calcular()"></div>
+    </div>
+</div>
 
-            <div id="grupo-lomitos" class="grupo-productos" style="display: none;">
-                <div class="grid-inputs">
-                    <div>Carne: <input type="number" id="qty_lomito_carne" value="0" min="0" oninput="calcular()"></div>
-                    <div>Mixto: <input type="number" id="qty_lomito_mixto" value="0" min="0" oninput="calcular()"></div>
-                    <div>3 Quesos: <input type="number" id="qty_lomito_triple" value="0" min="0" oninput="calcular()"></div>
-                    <div>Especial Power: <input type="number" id="qty_lomito_especial_power" value="0" min="0" oninput="calcular()"></div>
-                    <div style="grid-column: span 2;">Combo Power: <input type="number" id="qty_combo_power_nuevo" value="0" min="0" oninput="calcular()"></div>
-                </div>
-            </div>
+<div id="grupo-lomitos" class="grupo-productos" style="display: none;">
+    <div class="grid-inputs">
+        <div>Carne: <input type="number" id="qty_lomito_carne" value="0" min="0" oninput="calcular()"></div>
+        <div>Mixto: <input type="number" id="qty_lomito_mixto" value="0" min="0" oninput="calcular()"></div>
+        <div>3 Quesos: <input type="number" id="qty_lomito_triple" value="0" min="0" oninput="calcular()"></div>
+        <div>Especial Power: <input type="number" id="qty_lomito_especial_power" value="0" min="0" oninput="calcular()"></div>
+        
+        <div style="grid-column: span 2;">Combo Power: <input type="number" id="qty_combo_power_nuevo" value="0" min="0" oninput="calcular()"></div>
+    </div>
+</div>
 
             <button onclick="cambiarPaso(2)">SIGUIENTE ➔</button>
         </div>
