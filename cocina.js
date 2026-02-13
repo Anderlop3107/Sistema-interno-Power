@@ -1,70 +1,14 @@
-// 1. IMPORTACIONES
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-// 2. CONFIGURACIÓN DE FIREBASE
-const firebaseConfig = {
-    apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
-    authDomain: "pedidos-power.firebaseapp.com",
-    databaseURL: "https://pedidos-power-default-rtdb.firebaseio.com",
-    projectId: "pedidos-power",
-    storageBucket: "pedidos-power.firebasestorage.app",
-    messagingSenderId: "269752304723",
-    appId: "1:269752304723:web:ab7ccac47a7859ce0672a6"
-};
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-// 3. VARIABLES DE CONTROL
-const sonidoNuevo = document.getElementById('notificacion');
-const sonidoListo = document.getElementById('sonidoListo');
-let primeraCarga = true;
-let pedidosLocales = {};
-let conteoAnterior = 0;
-
-// 4. CAPA DE ACTIVACIÓN (Diseño Viejo - Sin Alarma Infinita)
-const capa = document.createElement('div');
-capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
-capa.innerHTML = `
-    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
-        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
-        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
-        <p>Toca para activar el sistema de cocina</p>
-        <span style="font-size: 3em;">🔔</span>
-    </div>`;
-document.body.appendChild(capa);
-
-capa.onclick = () => {
-    // Sonido normal (suena una vez y se detiene, como el viejo)
-    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
-    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
-    
-    // Pedir permiso para notificaciones en el celular
-    if ("Notification" in window) { Notification.requestPermission(); }
-    
-    capa.remove();
-};
-
-// 5. NOTIFICACIÓN EXTERNA (Mejora del nuevo para el celular)
-function lanzarNotificacionExterna(nombre) {
-    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'NUEVO_PEDIDO',
-            cliente: nombre || "Nuevo"
-        });
-    }
-}
-
-// 6. ESCUCHAR PEDIDOS (Ajuste de proporciones y posición de fecha)
+// 6. ESCUCHAR PEDIDOS (CON COINCIDENCIAS Y AVISO DE COLA)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
     const contenedor = document.getElementById('lista-pedidos');
     
+    if (!contenedor) return;
     contenedor.innerHTML = ""; 
+    
     contenedor.style.display = "grid";
-    contenedor.style.gridTemplateColumns = "1fr 1fr";
+    contenedor.style.gridTemplateColumns = "1fr 1fr"; 
     contenedor.style.gap = "15px";
     contenedor.style.direction = "rtl"; 
 
@@ -80,17 +24,29 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
+        // Guardamos los productos del primer pedido para comparar
+        let productosPrimerPedido = [];
+        if (ids[0] && pedidos[ids[0]].productos) {
+            productosPrimerPedido = Array.isArray(pedidos[ids[0]].productos) 
+                ? pedidos[ids[0]].productos.map(p => p.nombre)
+                : Object.keys(pedidos[ids[0]].productos);
+        }
+
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Solo dibujamos los 2 primeros
 
             const p = pedidos[id];
+            let listaHTML = "<ul style='padding:0; list-style:none; margin: 10px 0;'>";
             
-            // Productos un poco más pequeños para que no ocupen tanto espacio
-            let listaHTML = "<ul style='padding:0; list-style:none; margin: 10px 0;'></ul>";
             if (Array.isArray(p.productos)) {
                 p.productos.forEach(prod => {
-                    listaHTML += `<li style="padding:4px 0; border-bottom:1px solid #eee; font-size: 1.1em;">
+                    // LÓGICA DE LA RAYITA (COINCIDENCIA)
+                    const esIgual = index === 1 && productosPrimerPedido.includes(prod.nombre);
+                    const estiloCoincidencia = esIgual ? 'background-color: #fff176; border-left: 10px solid #fbc02d; padding: 5px; font-weight: bold; border-radius: 5px;' : '';
+
+                    listaHTML += `<li style="padding:4px 0; border-bottom:1px solid #eee; font-size: 1.1em; ${estiloCoincidencia}">
                         <span style="color:#ff8c00; font-weight:bold;">${prod.cantidad}</span> x ${prod.nombre}
+                        ${esIgual ? ' <small>(¡IGUAL AL ACTUAL!)</small>' : ''}
                     </li>`;
                 });
             }
@@ -106,11 +62,10 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                         <span style="color:#ff8c00; font-weight:bold; font-size: 1em; display: block;">
                             ${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}
                         </span>
-                        <span style="font-size: 0.9em; color: #555; font-weight: 600;">
+                        <span style="font-size: 0.85em; color: #555; font-weight: 600;">
                             🕒 ${p.hora || ''} p.m.
                         </span>
                     </div>
-                    <img src="LogoPow.png" style="width: 30px; opacity: 0.6;">
                 </div>
 
                 <div style="margin: 12px 0;">
@@ -119,57 +74,30 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 </div>
 
                 <hr style="border:0; border-top:1px solid #eee; margin: 5px 0;">
-                
                 ${listaHTML}
                 
-                ${p.observaciones ? `
-                    <div style="background:#fff176; margin: 8px 0; padding: 6px; border-radius: 8px; border-left: 5px solid #ffd600; font-size: 0.85em; font-weight: bold;">
-                        📝 ${p.observaciones}
-                    </div>` : ""}
+                ${p.observaciones ? `<div style="background:#fff176; margin: 8px 0; padding: 6px; border-radius: 8px; border-left: 5px solid #ffd600; font-size: 0.85em; font-weight: bold;">📝 ${p.observaciones}</div>` : ""}
                 
                 <hr style="border:0; border-top:1px solid #eee; margin: 5px 0;">
 
                 <div style="margin-top: auto; padding-top: 10px;">
-                    <p style="margin:0; font-size:0.9em;">💳 ${p.metodoPago}</p>
+                    <p style="margin:0; font-size:0.9em; color:#666;">💳 ${p.metodoPago}</p>
                     <p style="margin:0; font-size:1.2em; color:#ff8c00;">💰 <b>${p.totalStr || '0 Gs'}</b></p>
                     <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="margin-top:10px;">LISTO ✅</button>
                 </div>
             `;
             contenedor.appendChild(tarjeta);
         });
+
+        // AVISO DE PEDIDOS EN COLA (Al final de todo)
+        if (ids.length > 2) {
+            const aviso = document.createElement('div');
+            aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; background: #fff3e0; color: #e65100; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; border: 1px dashed #ff8c00;";
+            aviso.innerHTML = `⚠️ HAY ${ids.length - 2} PEDIDO(S) MÁS EN COLA AGUARDANDO...`;
+            contenedor.appendChild(aviso);
+        }
     } else {
         contenedor.innerHTML = "<p style='text-align:center; grid-column:1/span 2; color:#aaa; margin-top:50px;'>✅ ¡Sin pedidos!</p>";
     }
     primeraCarga = false;
 });
-// 7. FINALIZAR PEDIDO (Corregido para leer estadísticas)
-window.terminarPedido = (id) => {
-    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
-    const p = pedidosLocales[id];
-    if (!p) return;
-
-    const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
-    
-    set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
-    .then(() => {
-        // Usamos productos_stats que creamos en el script.js para no romper tus gráficos
-        const fuenteStats = p.productos_stats || {};
-        
-        for (let prod in fuenteStats) {
-            if (fuenteStats[prod] > 0) {
-                const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
-                runTransaction(statRef, (val) => (val || 0) + parseInt(fuenteStats[prod]));
-            }
-        }
-        
-        if (p.entrega === "Delivery") {
-            const montoDeliv = parseInt(p.monto_delivery) || 0;
-            if (montoDeliv > 0) {
-                const delivRef = ref(database, `estadisticas/diario/${hoy}/total_delivery`);
-                runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
-            }
-        }
-        remove(ref(database, 'pedidos/' + id));
-    })
-    .catch(err => console.error("Error al finalizar:", err));
-};
