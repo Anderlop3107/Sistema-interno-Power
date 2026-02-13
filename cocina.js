@@ -1,3 +1,61 @@
+// 1. IMPORTACIONES
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, remove, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// 2. CONFIGURACIÓN DE FIREBASE
+const firebaseConfig = {
+    apiKey: "AIzaSyC34X4eikjCb5q1kOe479kV1hi9Yf6KpjE",
+    authDomain: "pedidos-power.firebaseapp.com",
+    databaseURL: "https://pedidos-power-default-rtdb.firebaseio.com",
+    projectId: "pedidos-power",
+    storageBucket: "pedidos-power.firebasestorage.app",
+    messagingSenderId: "269752304723",
+    appId: "1:269752304723:web:ab7ccac47a7859ce0672a6"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// 3. VARIABLES DE CONTROL
+const sonidoNuevo = document.getElementById('notificacion');
+const sonidoListo = document.getElementById('sonidoListo');
+let primeraCarga = true;
+let pedidosLocales = {};
+let conteoAnterior = 0;
+
+// 4. CAPA DE ACTIVACIÓN (Diseño Viejo - Sin Alarma Infinita)
+const capa = document.createElement('div');
+capa.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; cursor:pointer; font-family: sans-serif;";
+capa.innerHTML = `
+    <div style="border: 3px solid #ff8c00; padding: 40px; border-radius: 20px; max-width: 80%;">
+        <img src="LogoPow.png" alt="Logo" style="width: 120px; margin-bottom: 10px;">
+        <h1 style="color: #ff8c00; font-size: 24px;">PEDIDOS - POWER</h1>
+        <p>Toca para activar el sistema de cocina</p>
+        <span style="font-size: 3em;">🔔</span>
+    </div>`;
+document.body.appendChild(capa);
+
+capa.onclick = () => {
+    // Sonido normal (suena una vez y se detiene, como el viejo)
+    if(sonidoNuevo) { sonidoNuevo.play().then(() => { sonidoNuevo.pause(); sonidoNuevo.currentTime = 0; }); }
+    if(sonidoListo) { sonidoListo.play().then(() => { sonidoListo.pause(); sonidoListo.currentTime = 0; }); }
+    
+    // Pedir permiso para notificaciones en el celular
+    if ("Notification" in window) { Notification.requestPermission(); }
+    
+    capa.remove();
+};
+
+// 5. NOTIFICACIÓN EXTERNA (Mejora del nuevo para el celular)
+function lanzarNotificacionExterna(nombre) {
+    if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'NUEVO_PEDIDO',
+            cliente: nombre || "Nuevo"
+        });
+    }
+}
+
 // 6. ESCUCHAR PEDIDOS (Ajuste de proporciones y posición de fecha)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
@@ -28,7 +86,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             const p = pedidos[id];
             
             // Productos un poco más pequeños para que no ocupen tanto espacio
-            let listaHTML = "<ul style='padding:0; list-style:none; margin: 10px 0;'>";
+            let listaHTML = "<ul style='padding:0; list-style:none; margin: 10px 0;'></ul>";
             if (Array.isArray(p.productos)) {
                 p.productos.forEach(prod => {
                     listaHTML += `<li style="padding:4px 0; border-bottom:1px solid #eee; font-size: 1.1em;">
@@ -84,3 +142,34 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     }
     primeraCarga = false;
 });
+// 7. FINALIZAR PEDIDO (Corregido para leer estadísticas)
+window.terminarPedido = (id) => {
+    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
+    const p = pedidosLocales[id];
+    if (!p) return;
+
+    const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
+    
+    set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
+    .then(() => {
+        // Usamos productos_stats que creamos en el script.js para no romper tus gráficos
+        const fuenteStats = p.productos_stats || {};
+        
+        for (let prod in fuenteStats) {
+            if (fuenteStats[prod] > 0) {
+                const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
+                runTransaction(statRef, (val) => (val || 0) + parseInt(fuenteStats[prod]));
+            }
+        }
+        
+        if (p.entrega === "Delivery") {
+            const montoDeliv = parseInt(p.monto_delivery) || 0;
+            if (montoDeliv > 0) {
+                const delivRef = ref(database, `estadisticas/diario/${hoy}/total_delivery`);
+                runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
+            }
+        }
+        remove(ref(database, 'pedidos/' + id));
+    })
+    .catch(err => console.error("Error al finalizar:", err));
+};
