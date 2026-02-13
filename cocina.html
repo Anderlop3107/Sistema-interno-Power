@@ -6,36 +6,53 @@
     <title>Cocina - Pedidos Power</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="LogoPow.png">
     
+    <link rel="manifest" href="manifest_cocina.json">
+    <link rel="icon" type="image/png" href="LogoPow.png">
+    <link rel="apple-touch-icon" href="LogoPow.png">
+    
+    <meta name="theme-color" content="#ff8c00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Power Cocina">
+
+    <link rel="stylesheet" href="style.css">
     <style>
         body {
             background-color: #f0f2f5;
             font-family: 'Poppins', sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 5px;
+            overflow-x: hidden;
         }
 
-        /* DISEÑO DE DOS COLUMNAS (UNO AL COSTADO DEL OTRO) */
+        /* DISEÑO DE DOS COLUMNAS AL COSTADO */
         #lista-pedidos {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 15px;
             padding: 10px;
-            direction: rtl; /* Para mantener el orden que tenías antes */
+            margin-top: 0;
         }
 
-        /* Estilo fiel a tu Imagen */
+        @media (min-width: 768px) or (orientation: landscape) {
+            #lista-pedidos {
+                grid-template-columns: 1fr 1fr; /* Aquí se ponen uno al lado del otro */
+                gap: 20px;
+                max-width: 98%;
+                margin: 0 auto;
+            }
+        }
+
         .tarjeta-cocina {
-            direction: ltr;
-            border: 3px solid #ff8c00; 
-            padding: 20px;
-            border-radius: 25px;
+            border: 4px solid #ff8c00;
+            padding: 15px;
+            border-radius: 20px;
             background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            min-height: 350px;
+            min-height: 250px;
         }
 
         .pedido-espera {
@@ -44,50 +61,35 @@
             opacity: 0.9;
         }
 
-        h2 { margin: 0; font-size: 1.2em; color: #ff8c00; }
-        p { margin: 5px 0; font-size: 1.1em; }
-        
-        ul { padding-left: 0; list-style: none; margin: 15px 0; flex-grow: 1; }
+        ul { padding-left: 0; list-style: none; margin: 10px 0; }
         li { 
-            margin-bottom: 10px; 
-            font-size: 1.3em; 
+            margin-bottom: 8px; 
+            font-size: 1.2em; 
             border-bottom: 1px solid #eee; 
-            padding-bottom: 5px; 
+            padding-bottom: 4px; 
         }
 
-        /* Botón LISTO Verde Redondeado */
         .btn-listo-cocina {
             width: 100%;
             padding: 18px;
             background: #28a745;
             color: white;
             border: none;
-            border-radius: 40px;
+            border-radius: 50px;
             font-weight: bold;
-            font-size: 1.3em;
+            font-size: 1.2em;
             cursor: pointer;
+            margin-top: auto;
             text-transform: uppercase;
         }
 
-        .nota-pedido {
-            background-color: #fff176;
-            padding: 10px;
-            border-radius: 10px;
-            border-left: 8px solid #fbc02d;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        /* Ajuste para tablets/celulares pequeños */
-        @media (max-width: 800px) {
-            #lista-pedidos { grid-template-columns: 1fr; }
-        }
+        .header-container { display: none; }
     </style>
 </head>
 <body>
 
     <div id="lista-pedidos">
-        <p style="text-align: center; grid-column: 1 / span 2;">Cargando pedidos...</p>
+        <p style="text-align: center; color: #888; margin-top: 50px;">Cargando sistema de cocina...</p>
     </div>
 
     <audio id="notificacion" src="llegpedido.mp3" preload="auto"></audio>
