@@ -56,7 +56,7 @@ function lanzarNotificacionExterna(nombre) {
     }
 }
 
-// 6. ESCUCHAR PEDIDOS (DISEÑO Y TAMAÑOS DEL VIEJO)
+// 6. ESCUCHAR PEDIDOS (ACTUALIZADO PARA NUEVO FORMATO)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -71,7 +71,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     if (pedidos) {
         const ids = Object.keys(pedidos);
         
-        // Suena solo una vez si hay pedido nuevo
+        // Alerta de sonido
         if (!primeraCarga && ids.length > conteoAnterior) {
             if(sonidoNuevo) {
                 sonidoNuevo.currentTime = 0;
@@ -82,23 +82,27 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
-        const prodP1 = ids[0] ? Object.keys(pedidos[ids[0]].productos) : [];
-        const prodP2 = ids[1] ? Object.keys(pedidos[ids[1]].productos) : [];
-        const repetidos = prodP1.filter(item => prodP2.includes(item));
-
         ids.forEach((id, index) => {
-            if (index > 1) return; 
+            if (index > 1) return; // Solo muestra los 2 primeros
 
             const p = pedidos[id];
-            let listaHTML = "<ul style='padding:0; list-style:none;'>";
             
-            for (let key in p.productos) {
-                const cant = p.productos[key];
-                if (cant > 0) {
-                    const nombre = key.replace("qty_", "").toUpperCase();
-                    const esRepetido = repetidos.includes(key);
-                    const estiloLi = `padding:5px; border-radius:6px; ${esRepetido ? 'background:#fff8e1; border-left:5px solid #ff8c00; font-weight:bold;' : ''}`;
-                    listaHTML += `<li style="${estiloLi}"><span style="color:#ff8c00;">${cant}</span> x ${nombre}</li>`;
+            // --- NUEVA LÓGICA PARA LISTAR PRODUCTOS ---
+            let listaHTML = "<ul style='padding:0; list-style:none;'>";
+            if (Array.isArray(p.productos)) {
+                // Si es el formato nuevo (Array)
+                p.productos.forEach(prod => {
+                    listaHTML += `<li style="padding:5px; border-bottom:1px solid #eee;">
+                        <span style="color:#ff8c00; font-weight:bold;">${prod.cantidad}</span> x ${prod.nombre}
+                    </li>`;
+                });
+            } else {
+                // Por si queda algún pedido con el formato viejo
+                for (let key in p.productos) {
+                    if (p.productos[key] > 0) {
+                        const nombreOld = key.replace("qty_", "").toUpperCase();
+                        listaHTML += `<li><span style="color:#ff8c00;">${p.productos[key]}</span> x ${nombreOld}</li>`;
+                    }
                 }
             }
             listaHTML += "</ul>";
@@ -106,19 +110,22 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             const tarjeta = document.createElement('div');
             tarjeta.style.direction = "ltr";
             tarjeta.className = `tarjeta-cocina ${index === 1 ? 'pedido-espera' : ''}`;
+            
+            // --- AQUÍ SE DIBUJA LA TARJETA ---
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
                     <span style="color:#ff8c00;">${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}</span>
                     <span>🕒 ${p.hora || ''}</span>
                 </div>
-                <p><b>👤 ${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
+                <p>👤 <b>${p.cliente}</b><br><b>📍 ${p.entrega}</b></p>
                 <hr>
                 ${listaHTML}
                 
-                ${p.observaciones ? `<div class="coincidencia" style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">⚠️ NOTA: ${p.observaciones}</div>` : ""}
+                ${p.observaciones ? `<div style="background:#fff176; margin: 10px 0; padding: 8px; border-radius: 8px; border-left: 5px solid #ffd600; color: #000; font-weight: bold; font-size: 0.9em;">📝 NOTA: ${p.observaciones}</div>` : ""}
                 
                 <hr>
-                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br><b>💰 ${p.totalStr}</b></p>
+                <p style="font-size:0.9em;">💳 ${p.metodoPago}<br>
+                <b style="font-size:1.2em; color:#ff8c00;">💰 ${p.totalStr || '0 Gs'}</b></p>
                 <button class="btn-listo-cocina" onclick="terminarPedido('${id}')">LISTO ✅</button>
             `;
             contenedor.appendChild(tarjeta);
@@ -137,7 +144,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     primeraCarga = false;
 });
 
-// 7. FINALIZAR PEDIDO (CON TODAS TUS ESTADÍSTICAS DEL VIEJO)
+// 7. FINALIZAR PEDIDO (Corregido para leer estadísticas)
 window.terminarPedido = (id) => {
     if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
     const p = pedidosLocales[id];
@@ -147,12 +154,16 @@ window.terminarPedido = (id) => {
     
     set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
     .then(() => {
-        for (let prod in p.productos) {
-            if (p.productos[prod] > 0) {
+        // Usamos productos_stats que creamos en el script.js para no romper tus gráficos
+        const fuenteStats = p.productos_stats || {};
+        
+        for (let prod in fuenteStats) {
+            if (fuenteStats[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
-                runTransaction(statRef, (val) => (val || 0) + parseInt(p.productos[prod]));
+                runTransaction(statRef, (val) => (val || 0) + parseInt(fuenteStats[prod]));
             }
         }
+        
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -164,12 +175,3 @@ window.terminarPedido = (id) => {
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
-
-// 8. SERVICE WORKER
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW Listo'))
-            .catch(err => console.log('Error SW', err));
-    });
-}
