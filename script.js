@@ -50,7 +50,7 @@ const nombresProductos = {
     qty_lomito_carne: "Lomito Carne",
     qty_lomito_mixto: "Lomito Mixto",
     qty_lomito_triple: "Lomito 3 Quesos",
-    qty_lomito_especial_Power: "Lomito Especial Power",
+    qty_lomito_especial_power: "Lomito Especial Power",
     qty_combo_power_nuevo: "Combo Power Lomito",
     qty_papita: "Porción Papas",
     qty_gas1l: "Gaseosa 1L",
@@ -173,51 +173,54 @@ window.calcular = () => {
     return total;
 };
 
-window.enviarAlCocinero = () => {
-    const nombre = document.getElementById('nombre_cliente').value.trim();
-    if (!nombre) { alert("Escriba el nombre del cliente"); return; }
+// ... (Tus importaciones y la lista nombresProductos corregida arriba)
 
-    const obs = document.getElementById('observaciones').value.trim();
-    const metodoEntrega = document.querySelector('input[name="entrega"]:checked')?.value || "No especificado";
-    const metodoPago = document.querySelector('input[name="pago"]:checked')?.value || "No especificado";
+window.enviarAlCocinero = () => {
+    const nombreInput = document.getElementById('nombre_cliente');
+    if (!nombreInput || !nombreInput.value.trim()) { 
+        alert("Escriba el nombre del cliente"); 
+        return; 
+    }
+    
+    const montoTotalCalculado = calcular(); // Llama a tu función calcular
 
     const pedido = {
-        cliente: nombre,
-        productos: [], // Cambiamos a Array para que sea más fácil de leer en cocina
-        observaciones: obs,
-        entrega: metodoEntrega,
-        monto_delivery: parseInt(document.getElementById('monto_delivery').value) || 0,
-        metodoPago: metodoPago,
-        totalNum: calcular(),
+        cliente: nombreInput.value.trim(),
+        productos: [], 
+        productos_stats: {}, 
+        observaciones: document.getElementById('observaciones')?.value.trim() || "",
+        entrega: document.querySelector('input[name="entrega"]:checked')?.value || "Local",
+        monto_delivery: parseInt(document.getElementById('monto_delivery')?.value) || 0,
+        metodoPago: document.querySelector('input[name="pago"]:checked')?.value || "Efectivo",
+        totalNum: montoTotalCalculado,
+        totalStr: `${montoTotalCalculado.toLocaleString('es-PY')} Gs`,
         hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         fecha_final: new Date().toLocaleDateString('es-PY').replace(/\//g, '-')
     };
 
-    // Llenar la lista de productos con nombres reales y precios
+    // Aquí usamos la lista nombresProductos que ya está declarada arriba del todo
     for (let id in precios) {
         const input = document.getElementById(id);
-        if (input) {
-            const cant = parseInt(input.value) || 0;
-            if (cant > 0) {
-                pedido.productos.push({
-                    nombre: nombresProductos[id],
-                    cantidad: cant,
-                    precioUnitario: precios[id],
-                    subtotal: cant * precios[id]
-                });
-            }
+        const cant = input ? parseInt(input.value) : 0;
+        if (cant > 0) {
+            pedido.productos.push({
+                nombre: nombresProductos[id] || id,
+                cantidad: cant
+            });
+            pedido.productos_stats[id] = cant;
         }
     }
 
-    if (pedido.productos.length === 0) {
-        alert("Agregue al menos un producto");
-        return;
+    if (pedido.productos.length === 0) { 
+        alert("Agregue al menos un producto"); 
+        return; 
     }
 
+    // Envío a Firebase
     const nuevoPedidoRef = push(ref(database, 'pedidos'));
     set(nuevoPedidoRef, pedido)
         .then(() => {
-            alert("✅ ¡Pedido enviado a cocina!");
+            alert("✅ ¡Pedido enviado!");
             location.reload();
         })
         .catch(err => alert("Error: " + err));
