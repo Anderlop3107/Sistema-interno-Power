@@ -100,11 +100,10 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             if (Array.isArray(p.productos)) {
                 p.productos.forEach(prod => {
                     const esIgual = index === 1 && productosPrimerPedido.includes(prod.nombre);
-                    const estiloCoincidencia = esIgual ? 'background-color: #fff176; border-left: 10px solid #fbc02d; padding: 5px; font-weight: bold; border-radius: 5px;' : '';
+                    const estiloCoincidencia = esIgual ? 'border-left: 10px solid #fbc02d; padding: 5px; font-weight: bold; border-radius: 5px;' : '';
 
                     listaHTML += `<li style="padding:4px 0; border-bottom:1px solid #eee; font-size: 1.1em; ${estiloCoincidencia}">
                         <span style="color:#ff8c00; font-weight:bold;">${prod.cantidad}</span> x ${prod.nombre}
-                        ${esIgual ? ' <br><small style="color:#e65100;">⚠️ ¡MISMO PRODUCTO QUE EL ACTUAL!</small>' : ''}
                     </li>`;
                 });
             }
