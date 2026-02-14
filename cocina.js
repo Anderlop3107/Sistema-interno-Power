@@ -155,7 +155,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; color: #ff8c00; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; border: 1px dashed #ff8c00;";
+            aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; color: #ff8c00; padding: 10px; border-radius: 10px; font-weight: bold; margin-top; border: 1px dashed #ff8c00;";
             aviso.innerHTML = `HAY ${ids.length - 2} PEDIDO(S) MÁS EN COLA ...`;
             contenedor.appendChild(aviso);
         }
