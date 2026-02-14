@@ -145,8 +145,8 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
                 <hr style="border:0; border-top:1px solid #eee; margin: 5px 0;">
 
                 <div style="margin-top: auto; padding-top: 10px;">
-                    <p style="margin:0; font-size:0.9em; color:#666;">💳 ${p.metodoPago}</p>
-                    <p style="margin:0; font-size:1.2em; color:#ff8c00;">💰 <b>${p.totalStr || '0 Gs'}</b></p>
+                    <p style="margin:0; font-size:0.9em; color:#666;">💳  ${p.metodoPago}</p>
+                    <p style="margin:0; font-size:1.2em; color:#ff8c00;">💰  <b>${p.totalStr || '0 Gs'}</b></p>
                     <button class="btn-listo-cocina" onclick="terminarPedido('${id}')" style="margin-top:10px;">LISTO ✅</button>
                 </div>
             `;
@@ -155,7 +155,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
 
         if (ids.length > 2) {
             const aviso = document.createElement('div');
-            aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; color: #ff8c00; padding: 10px; border-radius: 10px; font-weight: bold; margin-top; border: 1px dashed #ff8c00;";
+            aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; color: #ff8c00; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; border: 1px dashed #ff8c00; box-sizing: border-box; justify-self: center;";
             aviso.innerHTML = `HAY ${ids.length - 2} PEDIDO(S) MÁS EN COLA ...`;
             contenedor.appendChild(aviso);
         }
