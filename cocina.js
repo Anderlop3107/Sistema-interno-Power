@@ -56,7 +56,7 @@ function lanzarNotificacionExterna(nombre) {
     }
 }
 
-// 6. ESCUCHAR PEDIDOS (CON COINCIDENCIAS Y AVISO DE COLA)
+// 6. ESCUCHAR PEDIDOS (CORREGIDO)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -82,7 +82,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
-        // Guardamos los productos del primer pedido para comparar
+        // Guardamos productos del primer pedido para comparar con el segundo
         let productosPrimerPedido = [];
         if (ids[0] && pedidos[ids[0]].productos) {
             productosPrimerPedido = Array.isArray(pedidos[ids[0]].productos) 
@@ -91,24 +91,24 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
 
         ids.forEach((id, index) => {
-            if (index > 1) return; // Solo dibujamos los 2 primeros
+            if (index > 1) return; 
 
             const p = pedidos[id];
+            // CORRECCIÓN: Abrimos el <ul> sin cerrarlo todavía
             let listaHTML = "<ul style='padding:0; list-style:none; margin: 10px 0;'>";
             
             if (Array.isArray(p.productos)) {
                 p.productos.forEach(prod => {
-                    // LÓGICA DE LA RAYITA (COINCIDENCIA)
                     const esIgual = index === 1 && productosPrimerPedido.includes(prod.nombre);
                     const estiloCoincidencia = esIgual ? 'background-color: #fff176; border-left: 10px solid #fbc02d; padding: 5px; font-weight: bold; border-radius: 5px;' : '';
 
                     listaHTML += `<li style="padding:4px 0; border-bottom:1px solid #eee; font-size: 1.1em; ${estiloCoincidencia}">
                         <span style="color:#ff8c00; font-weight:bold;">${prod.cantidad}</span> x ${prod.nombre}
-                        ${esIgual ? ' <small>(¡IGUAL AL ACTUAL!)</small>' : ''}
+                        ${esIgual ? ' <br><small style="color:#e65100;">⚠️ ¡MISMO PRODUCTO QUE EL ACTUAL!</small>' : ''}
                     </li>`;
                 });
             }
-            listaHTML += "</ul>";
+            listaHTML += "</ul>"; // Ahora sí cerramos después de los <li>
 
             const tarjeta = document.createElement('div');
             tarjeta.style.direction = "ltr";
@@ -147,7 +147,7 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             contenedor.appendChild(tarjeta);
         });
 
-        // AVISO DE PEDIDOS EN COLA (Al final de todo)
+        // AVISO DE COLA (Se mantiene igual, está perfecto)
         if (ids.length > 2) {
             const aviso = document.createElement('div');
             aviso.style = "grid-column: 1 / span 2; width: 100%; text-align: center; background: #fff3e0; color: #e65100; padding: 10px; border-radius: 10px; font-weight: bold; margin-top: 10px; border: 1px dashed #ff8c00;";
