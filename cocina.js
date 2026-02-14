@@ -56,7 +56,7 @@ function lanzarNotificacionExterna(nombre) {
     }
 }
 
-// 6. ESCUCHAR PEDIDOS (COINCIDENCIAS EN AMBAS TARJETAS)
+// 6. ESCUCHAR PEDIDOS (Formato de hora 24h y tamaños igualados)
 onValue(ref(database, 'pedidos'), (snapshot) => {
     const pedidos = snapshot.val();
     pedidosLocales = pedidos || {};
@@ -82,7 +82,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
         }
         conteoAnterior = ids.length;
 
-        // Obtenemos productos de los dos primeros pedidos para comparar entre sí
         let prodPedido0 = [];
         let prodPedido1 = [];
         
@@ -103,7 +102,6 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             
             if (Array.isArray(p.productos)) {
                 p.productos.forEach(prod => {
-                    // CAMBIO AQUÍ: Verifica si el producto existe en el OTRO pedido (sea el 0 o el 1)
                     const tieneCoincidencia = (index === 0 && prodPedido1.includes(prod.nombre)) || 
                                              (index === 1 && prodPedido0.includes(prod.nombre));
                     
@@ -123,11 +121,11 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
             tarjeta.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items: flex-start;">
                     <div>
-                        <span style="color:#ff8c00; font-weight:bold; font-size: 1em; display: block;">
+                        <span style="color:#ff8c00; font-weight:bold; font-size: 1.1em; display: block;">
                             ${index === 0 ? '🔥 ACTUAL' : '⏳ EN COLA'}
                         </span>
                         <span style="font-size: 0.85em; color: #555; font-weight: 600;">
-                            🕒 ${p.hora || ''} p.m.
+                            🕒 ${p.hora || ''}
                         </span>
                     </div>
                 </div>
