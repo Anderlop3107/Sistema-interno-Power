@@ -22,42 +22,48 @@ const sonidoNotificacion = new Audio('https://assets.mixkit.co/active_storage/sf
 sonidoNotificacion.volume = 1.0;
 
 const precios = {
-    qty_power: 14000,
-    qty_esp_pollo: 12000,
-    qty_carne: 10000,
-    qty_mixto: 9000,
-    qty_pollo: 8000,
-    qty_combo_churra: 20000,
-    qty_lomito_carne: 27000,
-    qty_lomito_mixto: 27000,
-    qty_lomito_triple: 33000,
-    qty_lomito_especial_power: 40000,
-    qty_combo_power_nuevo: 37000,
+    // Churrasquitos
+    C_Especial_Power: 14000,
+    C_Especial_Pollo_Pepperoni: 12000,
+    C_Carne: 10000, // Corregido: antes C_
+    C_Mixto: 9000,
+    C_Pollo: 8000,
+    C_Combo_Power: 20000,
+    
+    // Lomitos
+    Lomito_Carne: 27000,
+    Lomito_Mixto: 27000,
+    Lomito_3_Quesos: 33000, // Corregido para coincidir con id="Lomito_3_Quesos"
+    Lomito_Especial_Power: 40000,
+    Combo_Lomito_Power: 37000,
+    
+    // Otros
     qty_papita: 10000,
     qty_gas1l: 10000,
     qty_gas250: 4000,
     qty_salsa: 1000
 };
 
-// Diccionario para que el cocinero lea nombres reales, no IDs
+// Lo que verá el cocinero en su pantalla
 const nombresProductos = {
-    qty_power: "Churra Power",
-    qty_esp_pollo: "Churra Especial Pollo",
-    qty_carne: "Churra Carne",
-    qty_mixto: "Churra Mixto",
-    qty_pollo: "Churra Pollo",
-    qty_combo_churra: "Combo Power Churra",
-    qty_lomito_carne: "Lomito Carne",
-    qty_lomito_mixto: "Lomito Mixto",
-    qty_lomito_triple: "Lomito 3 Quesos",
-    qty_lomito_especial_power: "Lomito Especial Power",
-    qty_combo_power_nuevo: "Combo Power Lomito",
-    qty_papita: "Porción Papas",
-    qty_gas1l: "Gaseosa 1L",
-    qty_gas250: "Gaseosa 250ml",
-    qty_salsa: "Salsa Extra"
+    C_Especial_Power: "C. Power",
+    C_Especial_Pollo_Pepperoni: "C. Especial",
+    C_Carne: "C. Carne", // Corregido
+    C_Mixto: "C. Mixto",
+    C_Pollo: "C. Pollo",
+    C_Combo_Power: "C. Combo Power",
+    
+    Lomito_Carne: "Lomito Carne",
+    Lomito_Mixto: "Lomito Mixto",
+    Lomito_3_Quesos: "Lomito T. Queso", // Corregido
+    Lomito_Especial_Power: "Lomito E. Power",
+    Combo_Lomito_Power: "Lomito Combo Power",
+    
+    qty_papita: "PAPITAS",
+    qty_gas1l: "GAS1L",
+    qty_gas250: "GAS250",
+    qty_salsa: "SALSA"
 };
-
 window.mostrarGrupo = (grupoId) => {
     // 1. Ocultar todos los grupos
     document.querySelectorAll('.grupo-productos').forEach(g => g.style.display = 'none');
@@ -184,19 +190,21 @@ window.enviarAlCocinero = () => {
     
     const montoTotalCalculado = calcular(); // Llama a tu función calcular
 
-    const pedido = {
-        cliente: nombreInput.value.trim(),
-        productos: [], 
-        productos_stats: {}, 
-        observaciones: document.getElementById('observaciones')?.value.trim() || "",
-        entrega: document.querySelector('input[name="entrega"]:checked')?.value || "Local",
-        monto_delivery: parseInt(document.getElementById('monto_delivery')?.value) || 0,
-        metodoPago: document.querySelector('input[name="pago"]:checked')?.value || "Efectivo",
-        totalNum: montoTotalCalculado,
-        totalStr: `${montoTotalCalculado.toLocaleString('es-PY')} Gs`,
-        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        fecha_final: new Date().toLocaleDateString('es-PY').replace(/\//g, '-')
-    };
+   const pedido = {
+    cliente: nombreInput.value.trim(),
+    productos: [], 
+    productos_stats: {}, 
+    observaciones: document.getElementById('observaciones')?.value.trim() || "",
+    entrega: document.querySelector('input[name="entrega"]:checked')?.value || "Local",
+    monto_delivery: parseInt(document.getElementById('monto_delivery')?.value) || 0,
+    metodoPago: document.querySelector('input[name="pago"]:checked')?.value || "Efectivo",
+    totalNum: montoTotalCalculado,
+    totalStr: `${montoTotalCalculado.toLocaleString('es-PY')} Gs`,
+    hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    // AGREGA ESTAS DOS LÍNEAS PARA EL DASHBOARD:
+    fecha: new Date().toLocaleDateString('es-PY').replace(/\//g, '-'), // Formato DD-MM-YYYY
+    timestamp: Date.now() 
+};
 
     // Aquí usamos la lista nombresProductos que ya está declarada arriba del todo
     for (let id in precios) {
