@@ -162,19 +162,30 @@ onValue(ref(database, 'pedidos'), (snapshot) => {
     }
     primeraCarga = false;
 });
-// 7. FINALIZAR PEDIDO (Corregido para leer estadísticas)
 window.terminarPedido = (id) => {
-    if(sonidoListo) { sonidoListo.currentTime = 0; sonidoListo.play().catch(e => console.log(e)); }
+    if(sonidoListo) { 
+        sonidoListo.currentTime = 0; 
+        sonidoListo.play().catch(e => console.log(e)); 
+    }
+
     const p = pedidosLocales[id];
     if (!p) return;
 
     const hoy = new Date().toLocaleDateString('es-PY').replace(/\//g, '-');
     
-    set(ref(database, 'historial/' + id), { ...p, fecha_final: hoy })
+    // 1. Preparamos el objeto para el historial
+    const pedidoFinalizado = { 
+        ...p, 
+        fecha_final: hoy,
+        estado: "completado",
+        totalNum: parseInt(p.totalNum) || 0 
+    };
+
+    // 2. Guardamos en historial
+    set(ref(database, 'historial/' + id), pedidoFinalizado)
     .then(() => {
-        // Usamos productos_stats que creamos en el script.js para no romper tus gráficos
+        // 3. Actualizar estadísticas de productos
         const fuenteStats = p.productos_stats || {};
-        
         for (let prod in fuenteStats) {
             if (fuenteStats[prod] > 0) {
                 const statRef = ref(database, `estadisticas/diario/${hoy}/${prod}`);
@@ -182,6 +193,7 @@ window.terminarPedido = (id) => {
             }
         }
         
+        // 4. Actualizar estadística de Delivery (si aplica)
         if (p.entrega === "Delivery") {
             const montoDeliv = parseInt(p.monto_delivery) || 0;
             if (montoDeliv > 0) {
@@ -189,7 +201,12 @@ window.terminarPedido = (id) => {
                 runTransaction(delivRef, (val) => (val || 0) + montoDeliv);
             }
         }
-        remove(ref(database, 'pedidos/' + id));
+
+        // 5. Borramos de pedidos pendientes
+        return remove(ref(database, 'pedidos/' + id));
+    })
+    .then(() => {
+        console.log("Pedido finalizado con éxito");
     })
     .catch(err => console.error("Error al finalizar:", err));
 };
