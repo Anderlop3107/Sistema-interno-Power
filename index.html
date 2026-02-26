@@ -1,122 +1,242 @@
 <!DOCTYPE html>
+
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
+
     <title>Pedidos-Power</title>
+
     <link rel="manifest" href="manifest.json">
+
     <meta name="theme-color" content="#ff8c00">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
+
     <link rel="stylesheet" href="style.css">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 </head>
+
 <body>
 
+
+
     <div class="header-container">
+
         <img src="LogoPow.png" alt="Logo" class="logo-top">
+
         <h1 class="titulo-principal">PEDIDOS - POWER</h1>
+
     </div>
+
+
 
     <div class="formulario">
+
         <div id="paso1" class="paso activo">
+
             <p><b>Nombre del Cliente:</b></p>
+
             <input type="text" id="nombre_cliente" placeholder="Escriba el nombre aquí...">
+
             <hr>
-            
+
+           
+
             <p><b>Seleccione Categoría:</b></p>
+
             <div class="categoria-selector">
-                <button type="button" id="btn-churra" onclick="mostrarGrupo('churrasquitos')" class="btn-cat active">Churrasquitos</button>
-                <button type="button" id="btn-lomi" onclick="mostrarGrupo('lomitos')" class="btn-cat">Lomitos</button>
+
+                <button type="button" id="btn-churra" onclick="mostrarGrupo('churrasquitos')" class="btn-cat">Churrasquitos</button>
+
+                <button type="button" id="btn-lomi" onclick="mostrarGrupo('lomitos')" class="btn-cat active">Lomitos</button>
+
             </div>
 
-            <div id="grupo-churrasquitos" class="grupo-productos">
-                <div class="grid-productos">
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Especial_Power', 'Power', 12000)">Power</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Especial_Pollo_Pepperoni', 'Especial', 10000)">Especial</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Carne', 'Carne', 8000)">Carne</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Mixto', 'Mixto', 7000)">Mixto</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Pollo', 'Pollo', 5000)">Pollo</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('C_Combo_Power', 'Combo Power', 18000)">Combo Power</button>
-                </div>
-            </div>
 
-            <div id="grupo-lomitos" class="grupo-productos" style="display: none;">
-                <div class="grid-productos">
-                    <button class="btn-prod" onclick="agregarAlPedido('Lomito_Carne', 'Carne', 20000)">Carne</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('Lomito_Mixto', 'Mixto', 22000)">Mixto</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('Triple_Queso', 'Triple Queso', 25000)">Triple Queso</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('Lomito_Especial_Power', 'Especial Power', 28000)">Especial Power</button>
-                    <button class="btn-prod" onclick="agregarAlPedido('Combo_Lomito_Power', 'Combo Power', 35000)">Combo Power</button>
-                </div>
-            </div>
 
-            <div id="lista-resumen-paso1" style="margin-top:15px; font-size: 0.9rem; color: #555;"></div>
+           <div id="grupo-churrasquitos" class="grupo-productos">
 
-            <button onclick="cambiarPaso(2)" style="margin-top: 20px;">SIGUIENTE ➔</button>
-        </div>
+    <div class="grid-inputs">
 
-        <div id="paso2" class="paso">
-            <p><b>Agregados y Bebidas:</b></p>
-            <div class="grid-productos-agregados">
-                <button class="btn-prod" onclick="agregarAlPedido('qty_papita', 'Papita', 10000)">Papita</button>
-                <button class="btn-prod" onclick="agregarAlPedido('qty_gas1l', 'Gaseosa 1L', 10000)">Gaseosa 1L</button>
-                <button class="btn-prod" onclick="agregarAlPedido('qty_gas250', 'Gaseosa 250', 4000)">Gaseosa 250</button>
-                <button class="btn-prod" onclick="agregarAlPedido('qty_salsa', 'Salsa', 1000)">Salsa</button>
-            </div>
-            
-            <div class="fila-botones">
-                <button class="btn-atras" onclick="cambiarPaso(1)">⬅ VOLVER</button>
-                <button onclick="cambiarPaso(3)">SIGUIENTE ➔</button>
-            </div>
-        </div>
+        <div>Power: <input type="number" id="C_Especial_Power" value="0" min="0" oninput="calcular()"></div>
 
-        <div id="paso3" class="paso">
-            <p><b>Tipo de Entrega:</b></p>
-            <div class="opciones-entrega">
-                <label><input type="radio" name="entrega" value="Local" id="tipo_retiro" onclick="gestionarDelivery()" checked> Local</label>
-                <label><input type="radio" name="entrega" value="Delivery" id="tipo_delivery" onclick="gestionarDelivery()"> Delivery</label>
-            </div>
+        <div>Especial: <input type="number" id="C_Especial_Pollo_Pepperoni" value="0" min="0" oninput="calcular()"></div>
 
-            <div id="seccion_monto_delivery" style="display: none;">
-                <p>Monto Delivery:</p>
-                <input type="number" id="monto_delivery" value="0" oninput="actualizarTotalFinal()">
-            </div>
+       
 
-            <p style="margin-top: 15px;"><b>Método de Pago:</b></p>
-            <div class="opciones-entrega">
-                <label><input type="radio" name="pago" value="Efectivo" checked> Efe</label>
-                <label><input type="radio" name="pago" value="Transferencia"> Transf</label>
-                <label><input type="radio" name="pago" value="PedidosYa"> PY</label>
-            </div>
+        <div>Carne: <input type="number" id="C_Carne" value="0" min="0" oninput="calcular()"></div>
 
-            <p style="margin-top: 15px;"><b>Observaciones:</b></p>
-            <textarea id="observaciones" rows="3" placeholder="Ej: Sin cebolla..." 
-                style="width: 100%; padding: 10px; border: 1.5px solid var(--accent); border-radius: 10px; font-family: inherit; box-sizing: border-box; resize: none;"></textarea>
+       
 
-            <div id="total_pantalla" style="font-size: 1.5rem; font-weight: bold; color: var(--accent); text-align: center; margin: 20px 0;">Total: 0 Gs</div>
+        <div>Mixto: <input type="number" id="C_Mixto" value="0" min="0" oninput="calcular()"></div>
 
-            <div class="fila-botones">
-                <button class="btn-atras" onclick="cambiarPaso(2)">⬅ VOLVER</button>
-                <button onclick="enviarAlCocinero()" id="btnEnviar">ENVIAR</button>
-            </div>
-        </div>
+       
+
+        <div>Pollo: <input type="number" id="C_Pollo" value="0" min="0" oninput="calcular()"></div>
+
+        <div style="grid-column: span 2;">Combo Power: <input type="number" id="C_Combo_Power" value="0" min="0" oninput="calcular()"></div>
+
     </div>
 
+</div>
+
+
+
+<div id="grupo-lomitos" class="grupo-productos" style="display: none;">
+
+    <div class="grid-inputs">
+
+        <div>Carne: <input type="number" id="Lomito_Carne" value="0" min="0" oninput="calcular()"></div>
+
+        <div>Mixto: <input type="number" id="Lomito_Mixto" value="0" min="0" oninput="calcular()"></div>
+
+        <div>3 Quesos: <input type="number" id="Lomito_3_Quesos" value="0" min="0" oninput="calcular()"></div>
+
+        <div>Especial Power: <input type="number" id="Lomito_Especial_Power" value="0" min="0" oninput="calcular()"></div>
+
+        <div style="grid-column: span 2;">Combo Power: <input type="number" id="Combo_Lomito_Power" value="0" min="0" oninput="calcular()"></div>
+
+    </div>
+
+</div>
+
+            <button onclick="cambiarPaso(2)">SIGUIENTE ➔</button>
+
+        </div>
+
+
+
+        <div id="paso2" class="paso">
+
+            <p><b>Agregados y Bebidas:</b></p>
+
+            <div class="grid-inputs">
+
+                <div>Papita: <input type="number" id="qty_papita" value="0" min="0" oninput="calcular()"></div>
+
+                <div>Gaseosa 1L: <input type="number" id="qty_gas1l" value="0" min="0" oninput="calcular()"></div>
+
+                <div>Gaseosa 250: <input type="number" id="qty_gas250" value="0" min="0" oninput="calcular()"></div>
+
+                <div>Salsa: <input type="number" id="qty_salsa" value="0" min="0" oninput="calcular()"></div>
+
+            </div>
+
+            <div class="fila-botones">
+
+                <button class="btn-atras" onclick="cambiarPaso(1)">⬅ VOLVER</button>
+
+                <button onclick="cambiarPaso(3)">SIGUIENTE ➔</button>
+
+            </div>
+
+        </div>
+
+
+
+        <div id="paso3" class="paso">
+
+            <p><b>Tipo de Entrega:</b></p>
+
+            <div class="opciones-entrega">
+
+                <label><input type="radio" name="entrega" value="Local" id="tipo_retiro" onclick="gestionarDelivery()" checked> Local</label>
+
+                <label><input type="radio" name="entrega" value="Delivery" id="tipo_delivery" onclick="gestionarDelivery()"> Delivery</label>
+
+            </div>
+
+
+
+            <div id="seccion_monto_delivery" style="display: none;">
+
+                <p>Monto Delivery:</p>
+
+                <input type="number" id="monto_delivery" value="0" oninput="calcular()">
+
+            </div>
+
+
+
+            <p style="margin-top: 15px;"><b>Método de Pago:</b></p>
+
+            <div class="opciones-entrega">
+
+                <label><input type="radio" name="pago" value="Efectivo" checked> Efe</label>
+
+                <label><input type="radio" name="pago" value="Transferencia"> Transf</label>
+
+                <label><input type="radio" name="pago" value="PedidosYa"> PY</label>
+
+            </div>
+
+
+
+            <p style="margin-top: 15px;"><b>Observaciones:</b></p>
+
+            <textarea id="observaciones" rows="3" placeholder="Ej: Sin cebolla..."
+
+                style="width: 100%; padding: 10px; border: 1.5px solid var(--accent); border-radius: 10px; font-family: inherit; box-sizing: border-box; resize: none;"></textarea>
+
+
+
+            <div id="total_pantalla">Total: 0 Gs</div>
+
+
+
+            <div class="fila-botones">
+
+                <button class="btn-atras" onclick="cambiarPaso(2)">⬅ VOLVER</button>
+
+                <button onclick="enviarAlCocinero()">ENVIAR</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
     <script type="module" src="script.js"></script>
+
     <script>
+
         window.mostrarGrupo = function(grupoId) {
+
             document.getElementById('grupo-churrasquitos').style.display = 'none';
+
             document.getElementById('grupo-lomitos').style.display = 'none';
+
             document.getElementById('grupo-' + grupoId).style.display = 'block';
-            
+
+           
+
             document.getElementById('btn-churra').classList.remove('active');
+
             document.getElementById('btn-lomi').classList.remove('active');
-            
+
+           
+
             if(grupoId === 'churrasquitos') {
+
                 document.getElementById('btn-churra').classList.add('active');
+
             } else {
+
                 document.getElementById('btn-lomi').classList.add('active');
+
             }
+
         }
+
     </script>
+
 </body>
+
 </html>
+
