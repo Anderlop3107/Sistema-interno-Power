@@ -46,18 +46,18 @@ const precios = {
 
 // Lo que verá el cocinero en su pantalla
 const nombresProductos = {
-    C_Especial_Power: "C. Power",
-    C_Especial_Pollo_Pepperoni: "C. Especial",
-    C_Carne: "C. Carne", // Corregido
-    C_Mixto: "C. Mixto",
-    C_Pollo: "C. Pollo",
-    C_Combo_Power: "C. Combo Power",
+    C_Especial_Power: "Chur. Power",
+    C_Especial_Pollo_Pepperoni: "Chur. Especial",
+    C_Carne: "Chur. Carne", // Corregido
+    C_Mixto: "Chur. Mixto",
+    C_Pollo: "Chur. Pollo",
+    C_Combo_Power: "Chur. Combo",
     
     Lomito_Carne: "Lomito Carne",
     Lomito_Mixto: "Lomito Mixto",
     Lomito_3_Quesos: "Lomito T. Queso", // Corregido
     Lomito_Especial_Power: "Lomito E. Power",
-    Combo_Lomito_Power: "Lomito Combo Power",
+    Combo_Lomito_Power: "Lomito Combo",
     
     qty_papita: "PAPITAS",
     qty_gas1l: "GAS1L",
@@ -224,12 +224,24 @@ window.enviarAlCocinero = () => {
         return; 
     }
 
-    // Envío a Firebase
+   // Envío a Firebase
     const nuevoPedidoRef = push(ref(database, 'pedidos'));
     set(nuevoPedidoRef, pedido)
         .then(() => {
-            alert("✅ ¡Pedido enviado!");
-            location.reload();
+            Swal.fire({
+                title: '¡Pedido Enviado!',
+                text: 'El pedido se ha enviado correctamente.',
+                icon: 'success',
+                confirmButtonText: 'Aceptar',
+                confirmButtonColor: '#ff8c00',
+                // AGREGAMOS ESTO PARA LAS ESQUINAS OVALADAS:
+                customClass: {
+                    popup: 'esquinas-ovaladas',
+                    confirmButton: 'boton-ovalado'
+                }
+            }).then((res) => {
+                location.reload();
+            });
         })
         .catch(err => alert("Error: " + err));
 };
