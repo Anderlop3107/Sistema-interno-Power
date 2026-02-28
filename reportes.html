@@ -113,11 +113,9 @@
 
     <div id="dashboard-final">
         <aside>
-            <div onclick="irAInicio()" style="font-weight: 800; font-size: 1.2rem; color: var(--accent); margin-bottom: 20px; cursor: pointer;">
-                POWER PANEL
-            </div>
-            
-            <div class="theme-switch">
+          <h2 onclick="recargarDatosActuales()" style="cursor: pointer; color: #ff8c00;">POWER PANEL</h2>
+
+             <div class="theme-switch">
                 <span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted);">MODO OSCURO</span>
                 <input type="checkbox" id="toggleTheme" onclick="alternarTema()">
             </div>
@@ -183,14 +181,29 @@
                 </div>
             </div>
 
-            <div id="view-productos" class="view-section">
-                <div class="card-pro">
-                    <table>
-                        <thead><tr><th>PRODUCTO</th><th>UNIDADES VENDIDAS</th></tr></thead>
-                        <tbody id="tbody-productos"></tbody>
-                    </table>
-                </div>
-            </div>
+<div id="view-productos" class="view-section">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card-pro">
+            <p style="font-weight: bold; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 5px;">CHURRASQUITOS</p>
+            <table>
+                <thead>
+                    <tr><th>PRODUCTO</th><th>UDS.</th></tr>
+                </thead>
+                <tbody id="tbody-prod-churras"></tbody>
+            </table>
+        </div>
+        
+        <div class="card-pro">
+            <p style="font-weight: bold; color: #e65100; border-bottom: 2px solid #e65100; padding-bottom: 5px;">LOMITOS Y OTROS</p>
+            <table>
+                <thead>
+                    <tr><th>PRODUCTO</th><th>UDS.</th></tr>
+                </thead>
+                <tbody id="tbody-prod-lomitos"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
             <div id="view-pedidosya" class="view-section">
                 <div class="card-pro">
@@ -228,6 +241,40 @@
             </div>
         </main>
     </div>
+
+    <div id="modalEdicion" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; display:none; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--card); color:var(--text-dark); padding:25px; border-radius:15px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; box-shadow:0 20px-50px rgba(0,0,0,0.5);">
+        <h3 style="margin-top:0; color:var(--accent);">Editar Registro de Venta</h3>
+        <input type="hidden" id="edit-idFB">
+        
+        <label style="font-size:0.8rem; font-weight:bold;">CLIENTE:</label>
+        <input type="text" id="edit-cliente" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border);">
+
+        <label style="font-size:0.8rem; font-weight:bold;">TIPO DE SERVICIO:</label>
+        <select id="edit-entrega" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border);">
+            <option value="Local">Local</option>
+            <option value="Delivery">Delivery</option>
+        </select>
+
+        <label style="font-size:0.8rem; font-weight:bold;">MÉTODO DE PAGO:</label>
+        <select id="edit-pago" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border);">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="PedidosYa">PedidosYa</option>
+        </select>
+
+        <label style="font-size:0.8rem; font-weight:bold;">PRODUCTOS (Formato: Cantidad x Nombre, uno por línea):</label>
+        <textarea id="edit-productos" rows="5" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border); font-family:monospace;"></textarea>
+
+        <label style="font-size:0.8rem; font-weight:bold;">MONTO TOTAL (Gs.):</label>
+        <input type="number" id="edit-total" style="width:100%; padding:10px; margin-bottom:20px; border-radius:8px; border:1px solid var(--border); font-weight:bold; color:var(--accent);">
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button onclick="document.getElementById('modalEdicion').style.display='none'" style="padding:12px; border-radius:10px; border:none; background:#64748b; color:white; cursor:pointer;">CANCELAR</button>
+            <button id="btnGuardarCambios" style="padding:12px; border-radius:10px; border:none; background:var(--accent); color:white; font-weight:bold; cursor:pointer;">GUARDAR CAMBIOS</button>
+        </div>
+    </div>
+</div>
 
     <script type="module" src="reportes.js"></script>
     <script>
