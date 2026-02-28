@@ -15,10 +15,28 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 const PRECIOS = {
-    "POWER": 12000, "ESPECIAL": 10000, "CARNE": 8000, "MIXTO": 7000, "POLLO": 5000,
-    "LOMITO ARABE": 25000, "COMBO": 18000, "COMBO POWER": 18000, "PAPITAS": 10000,
-    "GAS1L": 10000, "GASEOSA DE 1L": 10000, "GAS250": 4000, "GASEOSA DE 250": 4000,
-    "SALSA": 1000, "ESP POLLO": 10000
+    // Churrasquitos
+    "ESPECIAL POWER": 14000,
+    "POLLO PEPPERONI": 12000,
+    "CARNE": 10000,
+    "MIXTO": 9000,
+    "POLLO": 8000,
+    "CHURRASQUITO COMBO": 20000,
+    
+    // Lomitos
+    "LOMITO CARNE": 27000,
+    "LOMITO MIXTO": 27000,
+    "3 QUESOS": 33000,
+    "LOMITO ESPECIAL POWER": 40000,
+    "COMBO LOMITO POWER": 37000,
+    
+    // Extras
+    "PAPITA": 10000,
+    "GAS1L": 10000,
+    "GASEOSA DE 1L": 10000,
+    "GAS250": 4000,
+    "GASEOSA DE 250": 4000,
+    "SALSA": 1000
 };
 
 let chartProds, chartFinas, chartLomitos, chartExtras;
@@ -35,11 +53,21 @@ const limpiarMonto = (v) => v ? parseInt(v.toString().replace(/\D/g, '')) || 0 :
 const formatoGs = (v) => "Gs. " + (v || 0).toLocaleString('es-PY');
 
 function obtenerPrecio(nombreSucio) {
-    const nombre = (nombreSucio || "").toUpperCase().trim();
-    if (PRECIOS[nombre]) return PRECIOS[nombre];
-    for (let key in PRECIOS) {
-        if (nombre.includes(key)) return PRECIOS[key];
+    const nom = (nombreSucio || "").toUpperCase().trim();
+    
+    // 1. Intento de coincidencia exacta
+    if (PRECIOS[nom]) return PRECIOS[nom];
+    
+    // 2. Búsqueda de palabras clave (Lógica inteligente)
+    // Ordenamos las llaves de la más larga a la más corta para evitar falsos positivos
+    const llaves = Object.keys(PRECIOS).sort((a, b) => b.length - a.length);
+    
+    for (let clave of llaves) {
+        if (nom.includes(clave)) {
+            return PRECIOS[clave];
+        }
     }
+    
     return 0;
 }
 
@@ -106,23 +134,26 @@ window.cargarDashboard = async () => {
                 const listaProd = p.productos || p.items || {};
 
                 const procesarProducto = (nom, cant) => {
-                    nom = nom.toUpperCase().trim();
-                    calcProductos += (obtenerPrecio(nom) * cant);
-                    
-                    if (nom.startsWith("C.") || nom.startsWith("C ")) {
-                        dataGlobal.productosChurras[nom] = (dataGlobal.productosChurras[nom] || 0) + cant;
-                    } 
-                    else if (nom.includes("LOMITO")) {
-                        dataGlobal.productosLomitos[nom] = (dataGlobal.productosLomitos[nom] || 0) + cant;
-                    }
-                    else if (nom.includes("PAPA") || nom.includes("GAS") || nom.includes("SALSA") || nom.includes("GASEOSA")) {
-                        dataGlobal.productosExtras[nom] = (dataGlobal.productosExtras[nom] || 0) + cant;
-                    }
-                    else {
-                        dataGlobal.productosExtras[nom] = (dataGlobal.productosExtras[nom] || 0) + cant;
-                    }
-                };
+    nom = nom.toUpperCase().trim();
+    const precioUnitario = obtenerPrecio(nom);
+    calcProductos += (precioUnitario * cant);
+    
+    // Clasificación Robusta
+    const esChurrasquito = nom.startsWith("C.") || nom.startsWith("C ") || nom.includes("CHURRASQUITO") || nom.includes("CHUR.");
+    const esLomito = nom.includes("LOMITO");
+    const esExtra = nom.includes("PAPA") || nom.includes("GAS") || nom.includes("SALSA") || nom.includes("GASEOSA") || nom.includes("PAPITA");
 
+    if (esChurrasquito) {
+        dataGlobal.productosChurras[nom] = (dataGlobal.productosChurras[nom] || 0) + cant;
+    } 
+    else if (esLomito) {
+        dataGlobal.productosLomitos[nom] = (dataGlobal.productosLomitos[nom] || 0) + cant;
+    }
+    else {
+        // Todo lo que no es carne va a extras (Papas, gaseosas, salsas)
+        dataGlobal.productosExtras[nom] = (dataGlobal.productosExtras[nom] || 0) + cant;
+    }
+};
                 if (Array.isArray(listaProd)) {
                     listaProd.forEach(prod => {
                         let cant = parseInt(prod.cantidad) || 0;
@@ -177,12 +208,25 @@ function renderDashboard(inicio, fin) {
     if(document.getElementById('txtPedidosYa')) document.getElementById('txtPedidosYa').innerText = formatoGs(dataGlobal.totalPY);
     document.getElementById('rangoTexto').innerText = `${inicio} al ${fin}`;
 
-    const tbProd = document.querySelector('#tbody-productos');
-    if(tbProd){
-        const allProds = {...dataGlobal.productosChurras, ...dataGlobal.productosLomitos, ...dataGlobal.productosExtras};
-        const pRank = Object.entries(allProds).sort((a,b)=>b[1]-a[1]);
-        tbProd.innerHTML = pRank.map(p => `<tr><td>${p[0]}</td><td><b>${p[1]} uds</b></td></tr>`).join('');
-    }
+  // --- Renderizado de Tablas de Productos Divididas ---
+const tbChurras = document.querySelector('#tbody-prod-churras');
+const tbLomitos = document.querySelector('#tbody-prod-lomitos');
+
+if (tbChurras) {
+    // Ordenar churrasquitos por mayor venta
+    const churrasRank = Object.entries(dataGlobal.productosChurras).sort((a, b) => b[1] - a[1]);
+    tbChurras.innerHTML = churrasRank.length > 0 
+        ? churrasRank.map(p => `<tr><td>${p[0]}</td><td><b>${p[1]}</b></td></tr>`).join('')
+        : '<tr><td colspan="2" style="text-align:center; color:#aaa;">Sin ventas</td></tr>';
+}
+
+if (tbLomitos) {
+    // Ordenar lomitos por mayor venta
+    const lomitosRank = Object.entries(dataGlobal.productosLomitos).sort((a, b) => b[1] - a[1]);
+    tbLomitos.innerHTML = lomitosRank.length > 0 
+        ? lomitosRank.map(p => `<tr><td>${p[0]}</td><td><b>${p[1]}</b></td></tr>`).join('')
+        : '<tr><td colspan="2" style="text-align:center; color:#aaa;">Sin ventas</td></tr>';
+}
 
     const tbCli = document.querySelector('#tbody-clientes');
     if(tbCli){
@@ -294,4 +338,117 @@ window.verDetallePedidoPorID = async (idFB) => {
     document.body.appendChild(modal);
 };
 window.anularPedido = async (id) => { if(confirm("¿Anular este pedido definitivamente?")) { await remove(ref(database, `historial/${id}`)); window.cargarDashboard(); } };
-window.editarPedido = async (id, cli, monto, pago) => { const nuevoM = prompt("Nuevo monto total:", monto); if(nuevoM === null) return; const nuevoP = prompt("Nuevo método:", pago); if(nuevoP === null) return; await update(ref(database, `historial/${id}`), { totalNum: limpiarMonto(nuevoM), metodoPago: nuevoP }); window.cargarDashboard(); };
+// --- FUNCIÓN PARA RECALCULAR TOTAL EN VIVO ---
+function recalcularTotalDesdeTexto() {
+    const texto = document.getElementById('edit-productos').value;
+    const lineas = texto.split("\n").filter(l => l.trim() !== "");
+    let sumaProductos = 0;
+
+    lineas.forEach(linea => {
+        if (linea.includes(" x ")) {
+            const partes = linea.split(" x ");
+            const cantidad = parseInt(partes[0]) || 0;
+            const nombre = partes[1] ? partes[1].trim() : "";
+            sumaProductos += (cantidad * obtenerPrecio(nombre));
+        }
+    });
+
+    // Mantenemos el monto de delivery si el pedido era delivery
+    // Buscamos el pedido original en la data global para saber si tenía delivery
+    const idFB = document.getElementById('edit-idFB').value;
+    const pedidoOriginal = dataGlobal.pedidos.find(p => p.idFB === idFB);
+    const montoDeli = pedidoOriginal ? limpiarMonto(pedidoOriginal.monto_delivery) : 0;
+
+    document.getElementById('edit-total').value = sumaProductos + montoDeli;
+}
+// --- NUEVA FUNCIÓN DE EDICIÓN AVANZADA (MONTO MANUAL) ---
+window.editarPedido = async (idFB) => {
+    // 1. Buscar el pedido en nuestra data cargada
+    const p = dataGlobal.pedidos.find(item => item.idFB === idFB);
+    if (!p) return;
+
+    // 2. Llenar el modal con los datos actuales
+    document.getElementById('edit-idFB').value = idFB;
+    document.getElementById('edit-cliente').value = p.cliente || "";
+    document.getElementById('edit-entrega').value = p.entrega || "Local";
+    document.getElementById('edit-pago').value = p.metodoPago || "Efectivo";
+    document.getElementById('edit-total').value = p.totalCorregido;
+
+    // Convertir la lista de productos a texto para el cuadro de edición
+    let prodTexto = "";
+    const listaAProcesar = p.productos || p.items || {};
+    if (Array.isArray(listaAProcesar)) {
+        prodTexto = listaAProcesar.map(pr => `${pr.cantidad} x ${pr.nombre}`).join("\n");
+    } else {
+        for (let k in listaAProcesar) {
+            let nom = k.replace(/qty_/i, '').replace(/_/g, ' ');
+            prodTexto += `${listaAProcesar[k]} x ${nom}\n`;
+        }
+    }
+    document.getElementById('edit-productos').value = prodTexto.trim();
+
+    // 3. Mostrar el modal
+    document.getElementById('modalEdicion').style.display = 'flex';
+
+    // 4. Lógica del botón Guardar
+    const btnGuardar = document.getElementById('btnGuardarCambios');
+    btnGuardar.onclick = async () => {
+        const id = document.getElementById('edit-idFB').value;
+        const textoProd = document.getElementById('edit-productos').value;
+        
+        // Tomamos el monto que tú escribiste manualmente
+        const montoManual = parseInt(document.getElementById('edit-total').value) || 0;
+
+        // Convertimos el texto a formato de lista para Firebase
+        const nuevasLineas = textoProd.split("\n").filter(line => line.trim() !== "");
+        const nuevosProductos = nuevasLineas.map(linea => {
+            if (linea.includes(" x ")) {
+                const partes = linea.split(" x ");
+                return {
+                    cantidad: parseInt(partes[0]) || 1,
+                    nombre: partes[1] ? partes[1].trim() : "Producto"
+                };
+            } else {
+                return { cantidad: 1, nombre: linea.trim() };
+            }
+        });
+
+        const datosActualizados = {
+            cliente: document.getElementById('edit-cliente').value,
+            entrega: document.getElementById('edit-entrega').value,
+            metodoPago: document.getElementById('edit-pago').value,
+            totalNum: montoManual,
+            productos: nuevosProductos
+        };
+
+        try {
+            await update(ref(database, `historial/${id}`), datosActualizados);
+            document.getElementById('modalEdicion').style.display = 'none';
+            alert("✅ Pedido actualizado correctamente.");
+            window.cargarDashboard(); 
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar los cambios.");
+        }
+    };
+}; // <--- Aquí estaba el error, faltaba cerrar la función principal
+
+// FUNCIÓN 1: Actualiza los datos sin salir del Dashboard
+window.recargarDatosActuales = () => {
+    // Simplemente llamamos a cargarDashboard. 
+    // Como los inputs fechaInicio y fechaFin ya tienen las fechas cargadas, 
+    // traerá los nuevos pedidos de Firebase automáticamente.
+    console.log("Refrescando datos...");
+    window.cargarDashboard(); 
+};
+
+// FUNCIÓN 2: Botón Salir (Manda a elegir fechas)
+window.irASeleccionFechas = () => {
+    // Ocultamos el dashboard y mostramos la capa inicial
+    document.getElementById('dashboard-final').style.display = 'none';
+    document.getElementById('capa-inicial').style.display = 'flex';
+    
+    // Opcional: Limpiar los inputs si quieres empezar de cero
+    // document.getElementById('fechaInicio').value = '';
+    // document.getElementById('fechaFin').value = '';
+};
