@@ -244,3 +244,20 @@ p b { color: #444; font-size: 14px; }
     animation: fadeIn 0.3s ease-out;
 
 }
+
+/* 12. PERSONALIZACIÓN SWEETALERT (ALERTA OVALADA) */
+
+/* Esto hace que la tarjeta de la alerta sea redondeada */
+.esquinas-ovaladas {
+    border-radius: 30px !important; /* Esquinas bien ovaladas */
+    padding: 1.5rem !important;
+}
+
+/* Esto hace que el botón de "Aceptar" sea ovalado */
+.boton-ovalado {
+    border-radius: 50px !important; /* Botón tipo píldora */
+    padding: 12px 35px !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Poppins', sans-serif;
+}
